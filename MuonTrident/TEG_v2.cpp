@@ -1,3 +1,4 @@
+// g++ TEG_v2.cpp BH.cpp BH_with_interf.cpp  BH+bremss.cpp BH+bremss_with_interf.cpp
 //********************************************************************************
 //  TridentEventGenerator
 //
@@ -5,10 +6,14 @@
 //
 //  version 2.0 by Reinaldo Francener et al (2510.18943 and XXXX.XXXXX)
 //  version 2.0 includes pair production by an incident muon. We changed the Eqs. to the metric +---, 
+//  we also changed the kinematics to a massive lepton in the initial state and three massive leptons in the final state,
 //  so neutrino trident is not working in this version anymore (for neutrino trident use version 1.0)
 //  
 //
 //********************************************************************************
+
+#include "functions.h"
+#include "globais.h" 
 
 #include <iostream>
 #include <fstream>
@@ -24,6 +29,7 @@
 #include <sstream>
 #include <iterator>
 #include <vector>
+
 
 using namespace std;
 using std::fstream;
@@ -89,7 +95,7 @@ double anM1 = 8.28;
 //*****************************************************************
 double A, Z, M, M2;
 double GV, GA, GVSM, GASM;
-double m3, m4;
+double m1, m2, m3, m4;
 double InterpolationList[192][2]; // array used for interpolation of form factor grid
 
 //*****************************************************************
@@ -131,6 +137,7 @@ string material;
 string energy_type;
 string model;
 string command;
+string amplitude;
 string filename_in, filename_out;
 double Enu, GP, MZP;
 double GVtot, GAtot; 
@@ -153,6 +160,7 @@ double phi3, phi4, P2, P5, WC, WC2, WCqc, WB, WB2, qc;
 double P0C, PC, q0C, qC, eps1C, eps4C, p4C, P4; 
 double cos4, cosPq, sin4, sinPq, cosP1q, cosPp1, sinP1q, sinPp1, cosPhi, sinPhi;
 double p1P, q2, qp1, qp3, qp4, p1p3, p1p4, p3P, p4P, Pq, qP, p2P, qp2, p1p2, p2p3, p2p4, p3p4;
+double S, b, c, scmax, Lc, sbmin, sbmax;
 
 
 //*****************************************************************
@@ -2353,32 +2361,89 @@ double Pauli(double p){double blockingfactor;
   else {blockingfactor = 1.5*p/2/0.235 - 0.5*p*p*p/8/0.235/0.235/0.235;}
   
   return blockingfactor;}
-  
 
+
+
+//***********************************************
+// We are defining a function lambda
+//***********************************************
+  
+// Auxiliar function lambda
+double lambda(double a, double b, double c){double lmbd;
+  
+  lmbd = a*a+b*b+c*c-2*(a*b+a*c+b*c);
+  
+  return lmbd;}
+  
 //***********************************************
 // define the trident processes
 //***********************************************
 
 void SetTridentProcess(){
     
-    if(process == 50){ // mu- -> mu- e+ e-
+    if(process == 1){ // e- -> e- e+ e-
+         m1 = me; m2 = me;
+         m3 = me; m4 = me; 
+         GVSM = 1.0; GASM = 1.0;
+         anti = 0;
+         PDG1 = 11; PDG2 = 11; PDG3 = -11; PDG4 = 11;}
+    
+    else if(process == 2){ // e- -> e- mu+ mu-
+         m1 = me; m2 = me;
+         m3 = mmu; m4 = mmu; 
+         GVSM = 1.0; GASM = 1.0;
+         anti = 0;
+         PDG1 = 11; PDG2 = 11; PDG3 = -13; PDG4 = 13;}
+    
+    else if(process == 3){ // e- -> e- tau+ tau-
+         m1 = me; m2 = me;
+         m3 = mtau; m4 = mtau; 
+         GVSM = 1.0; GASM = 1.0;
+         anti = 0;
+         PDG1 = 11; PDG2 = 11; PDG3 = -15; PDG4 = 15;}
+         
+    else if(process == 4){ // mu- -> mu- e+ e-
+         m1 = mmu; m2 = mmu;
          m3 = me; m4 = me; 
          GVSM = 1.0; GASM = 1.0;
          anti = 0;
          PDG1 = 13; PDG2 = 13; PDG3 = -11; PDG4 = 11;}
     
-    else if(process == 51){ // mu- -> mu- mu+ mu-
+    else if(process == 5){ // mu- -> mu- mu+ mu-
+         m1 = mmu; m2 = mmu;
          m3 = mmu; m4 = mmu; 
          GVSM = 1.0; GASM = 1.0;
          anti = 0;
          PDG1 = 13; PDG2 = 13; PDG3 = -13; PDG4 = 13;}
     
-    else if(process == 52){ // mu- -> mu- tau+ tau-
+    else if(process == 6){ // mu- -> mu- tau+ tau-
+         m1 = mmu; m2 = mmu;
          m3 = mtau; m4 = mtau; 
          GVSM = 1.0; GASM = 1.0;
          anti = 0;
          PDG1 = 13; PDG2 = 13; PDG3 = -15; PDG4 = 15;}
-  
+         
+    else if(process == 7){ // tau- -> tau- e+ e-
+         m1 = mtau; m2 = mtau;
+         m3 = me; m4 = me; 
+         GVSM = 1.0; GASM = 1.0;
+         anti = 0;
+         PDG1 = 15; PDG2 = 15; PDG3 = -11; PDG4 = 11;}
+    
+    else if(process == 8){ // tau- -> tau- mu+ mu-
+         m1 = mtau; m2 = mtau;
+         m3 = mmu; m4 = mmu; 
+         GVSM = 1.0; GASM = 1.0;
+         anti = 0;
+         PDG1 = 15; PDG2 = 15; PDG3 = -13; PDG4 = 13;}
+    
+    else if(process == 9){ // tau- -> tau- tau+ tau-
+         m1 = mtau; m2 = mtau;
+         m3 = mtau; m4 = mtau; 
+         GVSM = 1.0; GASM = 1.0;
+         anti = 0;
+         PDG1 = 15; PDG2 = 15; PDG3 = -15; PDG4 = 15;}
+         
 }
 
 
@@ -2490,14 +2555,23 @@ void SetNuclearParameters(){
 int main(){
     
         // Define the trident process
+        std::cout << "---------------------------------------------------------------------\n";
         std::cout << "\n";
-	    std::cout << "Select the muon trident process  [enter 50 - 52]\n\n";
-	       std::cout << " [50] mu- -> mu- e+ e- \n";
-	       std::cout << " [51] mu- -> mu- mu+ mu- \n";
-	       std::cout << " [52] mu- -> mu- tau+ tau- \n\n";
+	    std::cout << "Select the lepton trident process  [enter 50 - 52]\n\n";
+	       std::cout << " [1] e- -> e- e+ e- \n";
+	       std::cout << " [2] e- -> e- mu+ mu- \n";
+	       std::cout << " [3] e- -> e- tau+ tau- \n";
+	       std::cout << " [4] mu- -> mu- e+ e- \n";
+	       std::cout << " [5] mu- -> mu- mu+ mu- \n";
+	       std::cout << " [6] mu- -> mu- tau+ tau- \n";
+	       std::cout << " [7] tau- -> tau- e+ e- \n";
+	       std::cout << " [8] tau- -> tau- mu+ mu- \n";
+	       std::cout << " [9] tau- -> tau- tau+ tau- \n\n";
 	    
         std::cin >> process;
-	    if(process != 50 && process != 51 && process != 52){
+	    if(process != 1 && process != 2 && process != 3
+	    && process != 4 && process != 5 && process != 6
+	    && process != 7 && process != 8 && process != 9){
         std::cout << "\n Invalid selection \n";
 	    return 0;}
 	   
@@ -2505,9 +2579,10 @@ int main(){
  	
  	
 	// Define the target material
+        std::cout << "---------------------------------------------------------------------\n";
 	    std::cout << "\n";
-        std::cout << "Select the target material  [enter Ar, Fe, W, Pb, proton, neutron] \n\n";
-	    std::cout << " [C] Carbon      [Ar] Argon      [Fe] Iron  \n\n";
+        std::cout << "Select the target material  [enter C, Ar, Fe, W, Pb, proton, neutron] \n\n";
+	    std::cout << " [C] Carbon (point-like)      [Ar] Argon      [Fe] Iron  \n\n";
 	    std::cout << " [WR] Tungsten Realistic [WP] Tungsten point-like \n\n";
 	    std::cout << " [WM] Tungsten Monopole  [WW] Tungsten Woods-Saxon \n\n";
 	    std::cout << " [Pb] Lead Woods-Saxon \n\n";
@@ -2524,12 +2599,13 @@ int main(){
 	SetNuclearParameters();
 	
 	
-	// Define the incoming muon spectrum
+	// Define the incoming lepton spectrum
+        std::cout << "---------------------------------------------------------------------\n";
 	    std::cout << "\n";
-        std::cout << "Are you using a fixed muon energy or an energy distribution? \n\n";
-	    std::cout << "[1] fixed muon energy \n\n";
+        std::cout << "Are you using a fixed incident lepton energy or an energy distribution? \n\n";
+	    std::cout << "[1] fixed lepton energy \n\n";
         std::cout << "[9] muon + antimuon flux at FASERnu (150fb^-1) \n\n";
-	std::cout << "[10] muon + antimuon flux at FASERnu - ED - (150fb^-1) \n\n";
+	std::cout << "[10] muon + antimuon flux at FASERnu - Electronic Detector - (150fb^-1) \n\n";
         std::cin >> energy_type;
 	    if(energy_type.compare("1") != 0 && energy_type.compare("9") != 0 &&
 	   energy_type.compare("10") != 0 ){
@@ -2538,8 +2614,9 @@ int main(){
         
         if(energy_type.compare("1") == 0){
 	    Enu = 0.0;
+        std::cout << "---------------------------------------------------------------------\n";
 	    std::cout << "\n";
-        std::cout << "Enter the energy of the muon beam (in GeV) \n\n";
+        std::cout << "Enter the energy of the lepton beam (in GeV) \n\n";
         std::cin >> Enu;}
 	 
 	        
@@ -2555,20 +2632,37 @@ int main(){
 
         
         // Define the particle physics model
+        std::cout << "---------------------------------------------------------------------\n";
         std::cout << "\n";
         std::cout << "Select the model \n\n";
-	    std::cout << "[SMmuon]  Standard Model (Muon trident) \n\n";
+	    std::cout << "[SM]  Standard Model (Lepton trident) \n\n";
         std::cin >> model;
-    	if(model.compare("SMmuon") != 0 ){
+    	if(model.compare("SM") != 0 ){
+	    std::cout << "\n Invalid selection \n";
+	    return 0;}
+
+        
+        // Define the matrix amplitude used
+        std::cout << "---------------------------------------------------------------------\n";
+        std::cout << "\n";
+        std::cout << "Select the matrix amplitude \n\n";
+	    std::cout << "[BH]  Bethe-Heitler process \n\n";
+	    std::cout << "[BH+bremss]  Bethe-Heitler plus bremsstrahlung \n\n";
+	    std::cout << "[BH_interf]  Bethe-Heitler process with interference between identical particles \n\n";
+	    std::cout << "[BH+bremss_interf]  Bethe-Heitler plus bremsstrahlung process with interference between identical particles \n\n";
+        std::cin >> amplitude;
+    	if(amplitude.compare("BH") != 0 && amplitude.compare("BH+bremss") != 0 
+    	&& amplitude.compare("BH_interf") != 0 && amplitude.compare("BH+bremss_interf") != 0){
 	    std::cout << "\n Invalid selection \n";
 	    return 0;}
 	    	    
 	   	
-        if(model.compare("SMmuon") == 0){
+        if(model.compare("SM") == 0){
         GAtot=0.0; GVtot=0.0; GP=0.0; MZP=1000.0;}
         
         
         // Cross section or event generation
+        std::cout << "---------------------------------------------------------------------\n";
         std::cout << "\n";
         std::cout << "You can compute the trident [CrossSection] or [GenerateEvents] \n\n";
         std::cin >> command;
@@ -2577,10 +2671,12 @@ int main(){
 	    return 0;}
 	   
         if(command.compare("GenerateEvents") == 0){
+        std::cout << "---------------------------------------------------------------------\n";
 	    std::cout << "\n";
         std::cout << "Enter the number of events to be generated \n\n";
         std::cin >> Nevents; 
 	    data1 = new double[20*Nevents];
+        std::cout << "---------------------------------------------------------------------\n";
 	    std::cout << "\n";
         std::cout << "Enter the name of the output file \n\n";
         std::cin >> filename_out;}
@@ -2597,7 +2693,7 @@ int main(){
 
 //        int iiii = 0;
         
-//        ofstream fout("CS_" + material + "_" + std::to_string(process) + ".dat");
+//        ofstream fout("CS_" + material + "_" + std::to_string(process) + "_" + amplitude + ".dat");
         
 //        do{ 
      
@@ -2649,12 +2745,12 @@ void GenerateEvent(){
     // Generate a random point if the neutrino energy is high enough.
     // Otherwise set flag to return a zero weight event.
    
-    if ((1-(m3+m4)*(m3+m4)/2/(eps1*eps1)*(1+eps1/M))*(1-(m3+m4)*(m3+m4)/2/(eps1*eps1)*(1+eps1/M)) - (m3+m4)*(m3+m4)*(m3+m4)*(m3+m4)/4/(eps1*eps1*eps1*eps1)*(1+2*eps1/M) < 0) {
+    if (eps1 - (m2+m3+m4) + ((m2+m3+m4)*(m2+m3+m4)*(m3+m4)-m1*m1)/2/M < 0) {
         zeroweight=1;
 	for (int jj = 0; jj < 4; jj++){
         for (int kk = 0; kk < 4; kk++){
         event[jj][kk] = 0.0;}}
-        //std::cout << "The muon energy is too small to create the charged leptons";
+        //std::cout << "The incident lepton energy is too small to create the charged leptons";
         return;}
         
     else {zeroweight=0; GenerateRandomPoint();}
@@ -2700,8 +2796,13 @@ void GenerateRandomPoint(){
     g = eps1/M;
     x0 = -M*eps1; // (B.1) of Lovseth, Radomski
     
-    x1max = 2*eps1*eps1/(1+2*g)*(1-(m3+m4)*(m3+m4)/2/(eps1*eps1)*(1+g)+sqrt((1-(m3+m4)*(m3+m4)/2/(eps1*eps1)*(1+g))*(1-(m3+m4)*(m3+m4)/2/(eps1*eps1)*(1+g))-(m3+m4)*(m3+m4)*(m3+m4)*(m3+m4)/4/(eps1*eps1*eps1*eps1)*(1+2*g)));
-    x1min = (m3+m4)*(m3+m4)*(m3+m4)*(m3+m4)/x1max/(1+2*g); // (B.4) of Lovseth, Radomski
+    S = m1*m1+M2-2*x0;
+    
+    //x1min = -2*M2+((S+M2-m1*m1)*(S+M2-(m2+m3+m4)*(m2+m3+m4))-sqrt(lambda(S,m1*m1,M2)*lambda(S,(m2+m3+m4)*(m2+m3+m4),M2)))/(2*S); // exact, but bad numerically
+    x1max = -2*M2+((S+M2-m1*m1)*(S+M2-(m2+m3+m4)*(m2+m3+m4))+sqrt(lambda(S,m1*m1,M2)*lambda(S,(m2+m3+m4)*(m2+m3+m4),M2)))/(2*S);
+    x1min = M2*((m2+m3+m4)*(m2+m3+m4)-m1*m1)*((m2+m3+m4)*(m2+m3+m4)-m1*m1)/S/x1max;
+    //x1max = 2*eps1*eps1/(1+2*g)*(1-(m3+m4)*(m3+m4)/2/(eps1*eps1)*(1+g)+sqrt((1-(m3+m4)*(m3+m4)/2/(eps1*eps1)*(1+g))*(1-(m3+m4)*(m3+m4)/2/(eps1*eps1)*(1+g))-(m3+m4)*(m3+m4)*(m3+m4)*(m3+m4)/4/(eps1*eps1*eps1*eps1)*(1+2*g)));
+    //x1min = (m3+m4)*(m3+m4)*(m3+m4)*(m3+m4)/x1max/(1+2*g); // (B.4) of Lovseth, Radomski
     
     u1max = Interpolation(x1min, 192);
     // put hard cut off for the form factor
@@ -2711,22 +2812,28 @@ void GenerateRandomPoint(){
     if (x1min > 1.0){u1min = Interpolation(x1min, 192);}
 
     u1 = u1min + (u1max-u1min)*realdistribution(generator);
-    x1 = -InverseInterpolation(u1, 192);
-    
-    u2max = (1+2*g)*(x1max+x1)*(-x1-x1min)/((m3+m4)*(m3+m4)-x1*(1+g)+2*eps1*sqrt((-x1+(x1*x1)/4/M2)));
+    x1 = -InverseInterpolation(u1, 192); 
+    //cout << x1min << " " << x1max << " " << x1 << "\n";
+    u2max = m1*m1-(m2+m3+m4)*(m2+m3+m4)+x1*(1+(eps1/M))+2*sqrt(eps1*eps1-m1*m1)*sqrt(-x1+x1*x1/(4*M2));
+    //u2max = (1+2*g)*(x1max+x1)*(-x1-x1min)/((m3+m4)*(m3+m4)-x1*(1+g)+2*eps1*sqrt((-x1+(x1*x1)/4/M2)));
     u2min = 0.0; // (B.5) of Lovseth, Radomski
     
     u2 = u2min + (u2max-u2min)*realdistribution(generator);
-    x2 = (-u2+x1-(m3+m4)*(m3+m4))/2;
+    x2 = (-u2+x1+m1*m1-(m2+m3+m4)*(m2+m3+m4))/2;
     
     
-    WB = sqrt(u2+(m3+m4)*(m3+m4));
+    WB = sqrt(u2+(m2+m3+m4)*(m2+m3+m4));
     WB2 = WB*WB;
-    yplus = (WB2-m3*m3-m4*m4)+sqrt(WB2*WB2+(m3*m3-m4*m4)*(m3*m3-m4*m4)-2*m3*m3*WB2-2*m4*m4*WB2);
-    yminus = 4*m3*m3*m4*m4/yplus; // (B.9b) of Lovseth, Radomski
+    //yplus = (WB2-m3*m3-m4*m4)+sqrt(WB2*WB2+(m3*m3-m4*m4)*(m3*m3-m4*m4)-2*m3*m3*WB2-2*m4*m4*WB2);
+    //yminus = 4*m3*m3*m4*m4/yplus; // (B.9b) of Lovseth, Radomski
     
-    D3max = m3*m3-x1*m4*m4/(WB2)-x2*yplus/(WB2);
-    D3min = m3*m3-x1*m4*m4/(WB2)-x2*yminus/(WB2); // (B.9b) of Lovseth, Radomski
+    D3max = -x1+((WB2-m1*m1+x1)*(WB2+m3*m3-(m2+m4)*(m2+m4))+sqrt(lambda(WB2,m1*m1,x1)*lambda(WB2,m3*m3,(m2+m4)*(m2+m4))))/(2*WB2);
+    D3min = -x1+((WB2-m1*m1+x1)*(WB2+m3*m3-(m2+m4)*(m2+m4))-sqrt(lambda(WB2,m1*m1,x1)*lambda(WB2,m3*m3,(m2+m4)*(m2+m4))))/(2*WB2);
+    //cout << D3max << " " << D3min << "\n";
+    //D3max = m3*m3-x1*m4*m4/(WB2)-x2*yplus/(WB2);
+    //D3min = m3*m3-x1*m4*m4/(WB2)-x2*yminus/(WB2); // (B.9b) of Lovseth, Radomski
+    //cout << D3max << " " << D3min << "\n";
+    //cout << "\n";
     
     u3max = log(D3max);
     u3min = log(D3min); // (B.9a) of Lovseth, Radomski
@@ -2736,12 +2843,21 @@ void GenerateRandomPoint(){
     D3 = -x1-2*x3;
     D32 = D3*D3;
     
-    u4max = ((D3max-D3)*(D3-D3min)*WB2/(-x1)/(u2+2*m3*(m3+m4)-2*x3*(-x2+x1)/(-x1)-2*x2*sqrt(x3*x3-m3*m3*x1)/(-x1)))*((D3max-D3)*(D3-D3min)*WB2/(-x1)/(u2+2*m3*(m3+m4)-2*x3*(-x2+x1)/(-x1)-2*x2*sqrt(x3*x3-m3*m3*x1)/(-x1)));
+    b = D3*(m1*m1-WB2-x1)+x1*(m1*m1+WB2+2*m3*m3-x1);
+    c = (lambda(WB2,m1*m1,x1)*(WB2-m3*m3)*(WB2-m3*m3)-((WB2-m1*m1+x1)*(WB2+m3*m3)-2*WB2*(D3+x1))*((WB2-m1*m1+x1)*(WB2+m3*m3)-2*WB2*(D3+x1)))/(4*WB2);
+    
+    scmax = (-b-sqrt(b*b+4*x1*c))/(-2*x1);
+    
+    u4max = lambda(scmax,m2*m2,m4*m4);
+    //cout << u4max << "\n";
+    //u4max = ((D3max-D3)*(D3-D3min)*WB2/(-x1)/(u2+2*m3*(m3+m4)-2*x3*(-x2+x1)/(-x1)-2*x2*sqrt(x3*x3-m3*m3*x1)/(-x1)))*((D3max-D3)*(D3-D3min)*WB2/(-x1)/(u2+2*m3*(m3+m4)-2*x3*(-x2+x1)/(-x1)-2*x2*sqrt(x3*x3-m3*m3*x1)/(-x1)));
+    //cout << u4max << "\n";
+    //cout << "\n";
     //  (B.10) of Lovseth, Radomski (square is according to Brown et al.)
     u4min = 0.0;
     u4 = u4min + (u4max-u4min)*realdistribution(generator);
 
-    x5 = x2-x3-(-m4*m4+m3*m3+x1-sqrt(u4))/2; // (B.8) of Lovseth, Radomski
+    x5 = x2-x3-(-m2*m2+m1*m1-m4*m4+m3*m3+x1-sqrt(u4+4*m2*m2*m4*m4))/2; // (B.8) of Lovseth, Radomski
     
     u5max = Twopi; // (B.11) of Lovseth, Radomski
     u5min = 0.0;
@@ -2749,15 +2865,27 @@ void GenerateRandomPoint(){
 
     phi3 = u5;
     
-    P2 = M2*(u2max-u2)/2*(-x2-eps1*x1/2/M+eps1*sqrt(-x1+x1*x1/4/M2))/(x2*x2); // (B.13) of Lovseth, Radomski
-    P5 = -x1/2*(sqrt(u4max)-sqrt(u4))*((sqrt(u4max)-sqrt(u4))/2-2*x2*sqrt(x3*x3-m3*m3*x1)/(-x1))/(x2*x2);
+    sbmax = m1*m1+x1*(1.0+eps1/M)+2*sqrt(eps1*eps1-m1*m1)*sqrt(-x1+x1*x1/(4*M2));
+    sbmin = m1*m1+x1*(1.0+eps1/M)-2*sqrt(eps1*eps1-m1*m1)*sqrt(-x1+x1*x1/(4*M2));
     
-    WC = sqrt(sqrt(u4)+m4*m4); // from (24) of Lovseth, Radomski
+    //P2 = -M2-x1*(m1*m1*x1+4*x0*x0-4*x0*x2)/(4*(x2*x2-m1*m1*x1)); // sometimes P2 negative, we need to check
+    //P2 = (M2*(sbmax-WB2)*(WB2-sbmin))/(4*(x2*x2-m1*m1*x1));
+    P2 = (M2*(u2max-u2)*(-x2-eps1*x1/(2*M)+sqrt(eps1*eps1-m1*m1)*sqrt(-x1+x1*x1/(4*M2))))/(2*(x2*x2-m1*m1*x1));
+    P5 = -m3*m3-(m1*m1*x3*x3+x1*x5*x5+2*x2*x3*x5)/(x2*x2-m1*m1*x1);
+    //cout << P2 << " " << P5 << "\n";
+    //P2 = M2*(u2max-u2)/2*(-x2-eps1*x1/2/M+eps1*sqrt(-x1+x1*x1/4/M2))/(x2*x2); // (B.13) of Lovseth, Radomski
+    //P5 = -x1/2*(sqrt(u4max)-sqrt(u4))*((sqrt(u4max)-sqrt(u4))/2-2*x2*sqrt(x3*x3-m3*m3*x1)/(-x1))/(x2*x2);
+    //cout << P2 << " " << P5 << "\n";
+    //cout << "\n";
+    
+    WC = sqrt(sqrt(4*m2*m2*m4*m4+u4)+m2*m2+m4*m4); // from (24) of Lovseth, Radomski
+    //WC = sqrt(sqrt(u4)+m4*m4); // from (24) of Lovseth, Radomski
     WC2 = WC*WC;
-    qc = 1/WC*sqrt((x2-x3)*(x2-x3)-2*x1*x5-m3*m3*x1); // (B.16) of Lovseth, Radomski
-    WCqc = sqrt((x2-x3)*(x2-x3)-2*x1*x5-m3*m3*x1);
+    //qc = 1/WC*sqrt((x2-x3)*(x2-x3)-2*x1*x5-m3*m3*x1); // (B.16) of Lovseth, Radomski
+    //WCqc = sqrt((x2-x3)*(x2-x3)-2*x1*x5-m3*m3*x1);
     
-    x7 = (x0*x1*x5+x0*x2*x3-x1*x2*x5/2)/(x2*x2)+sqrt(P2*P5)*cos(u5); // (B.12) of Lovseth, Radomski
+    x7 = (-m1*m1*x1*x3+2*x0*x1*x5+2*x0*x2*x3-x1*x2*x5)/2/(x2*x2-m1*m1*x1)+sqrt(P2*P5)*cos(u5);
+    //x7 = (x0*x1*x5+x0*x2*x3-x1*x2*x5/2)/(x2*x2)+sqrt(P2*P5)*cos(u5); // (B.12) of Lovseth, Radomski
     
     u7max = Twopi; // (B.17) of Lovseth, Radomski
     u7min = 0.0;
@@ -2765,8 +2893,17 @@ void GenerateRandomPoint(){
 
     phi4 = u7;
     
-    D4max = m4*m4*(WC2-2*x5-m3*m3)/WC2+(1-m4*m4/WC2)/2*(WC2-x1-2*x5-m3*m3+sqrt((WC2-2*x5-x1-m3*m3)*(WC2-2*x5-x1-m3*m3)+4*x1*(-2*x5-m3*m3))); // (B.18) of Lovseth, Radomski
-    D4min = m4*m4*(WC2-2*x5-m3*m3)/WC2+2*(1-m4*m4/WC2)*(-x1)*(-2*x5-m3*m3)/((WC2-x1-2*x5-m3*m3)+sqrt((WC2-x1-2*x5-m3*m3)*(WC2-x1-2*x5-m3*m3)+4*x1*(-2*x5-m3*m3))); // (B.19) of Lovseth, Radomski
+    Lc = (x2-x3)*(x2-x3)-x1*(m1*m1+m3*m3+2*x5);
+    qc = sqrt(Lc)/WC;
+    WCqc = sqrt(Lc);
+    
+    D4max = -x1+(x1-x2+x3)*(WC2+m4*m4-m2*m2)/WC2 + sqrt(Lc*u4)/WC2;
+    D4min = -x1+(x1-x2+x3)*(WC2+m4*m4-m2*m2)/WC2 - sqrt(Lc*u4)/WC2;
+    //cout << D4max << " " << D4min << "\n";
+    //D4max = m4*m4*(WC2-2*x5-m3*m3)/WC2+(1-m4*m4/WC2)/2*(WC2-x1-2*x5-m3*m3+sqrt((WC2-2*x5-x1-m3*m3)*(WC2-2*x5-x1-m3*m3)+4*x1*(-2*x5-m3*m3))); // (B.18) of Lovseth, Radomski
+    //D4min = m4*m4*(WC2-2*x5-m3*m3)/WC2+2*(1-m4*m4/WC2)*(-x1)*(-2*x5-m3*m3)/((WC2-x1-2*x5-m3*m3)+sqrt((WC2-x1-2*x5-m3*m3)*(WC2-x1-2*x5-m3*m3)+4*x1*(-2*x5-m3*m3))); // (B.19) of Lovseth, Radomski
+    //cout << D4max << " " << D4min << "\n";
+    //cout << "\n";
 
     u6max = log(D4max); // (B.17) of Lovseth, Radomski
     u6min = log(D4min);
@@ -2779,61 +2916,67 @@ void GenerateRandomPoint(){
     D3D4 = D3*D4;
     
     P4 = (D4max-D4)*(D4-D4min)/4/(qc*qc); // below (B.21) of Lovseth, Radomski
-    
-    x6 = -((WC2+m4*m4)/2*((-x2)*(-x2+x3)-x1*x5)-x4*(-x2+x5)*(-x2+x1+x3)-x4*x2*WC2)/WCqc/WCqc-x2*sqrt(P4*P5)*cos(phi4)/WCqc; // (B.21) of Lovseth, Radomski
-    
-    // x8 result in (B.21) of Lovseth, Radomski is missing a term according to Brown et al. and is not used in the following
-    
+     
     // below (B.20) in Lovseth, Radomski
     P0C = -(x0-0.5*x1-x7)/WC; // note the typo ...x7/WC) in Lovseth, Radomski
     PC = sqrt(P0C*P0C-M2);
     q0C = -(x2-x1-x3)/WC;
     qC = sqrt(q0C*q0C-x1);
-    eps1C = -(x2-x5)/WC;
-    eps4C = (WC2+m4*m4)/2/WC;
-    p4C = sqrt(u4)/2/WC;
+    eps1C = -(x2-x5-m1*m1)/WC;
+    eps4C = (WC2+m4*m4-m2*m2)/2/WC;
+    p4C = sqrt(eps4C*eps4C-m4*m4);
     
     cos4 = (eps4C*q0C+x4)/p4C/qC;
     sin4 = sqrt(1-cos4*cos4);
+       
+    //x6 = -((WC2+m4*m4)/2*((-x2)*(-x2+x3)-x1*x5)-x4*(-x2+x5)*(-x2+x1+x3)-x4*x2*WC2)/WCqc/WCqc-x2*sqrt(P4*P5)*cos(phi4)/WCqc; // (B.21) of Lovseth, Radomski
+    
+    // x8 result in (B.21) of Lovseth, Radomski is missing a term according to Brown et al. and is not used in the following
+
+    
     
     flagkinematics = 0;
       
     if(cos4*cos4>1.01){
       flagkinematics = 1; 
-//      std::cout << "Warning: event with extreme kinematics. Numerical precision is insufficient. \n";
-//      std::cout << "cos4^2-1 = " << (eps4C*q0C-x4)/p4C/qC*(eps4C*q0C-x4)/p4C/qC-1 << "\n\n";
+      //std::cout << "Warning: event with extreme kinematics. Numerical precision is insufficient. \n";
+      //std::cout << "cos4^2-1 = " << (eps4C*q0C+x4)/p4C/qC*(eps4C*q0C+x4)/p4C/qC-1 << "\n\n";
     }
     
-    if(1-cos4*cos4<1.0e-16){
-      sin4=0.0; // adhoc fix
-      cos4=1.0; // adhoc fix
-    }
+//    if(1-cos4*cos4<1.0e-16){
+//      sin4=0.0; // adhoc fix
+//      cos4=1.0; // adhoc fix
+//    }
+    if (cos4 >  1.0) cos4 =  1.0;
+    if (cos4 < -1.0) cos4 = -1.0;
+
+    sin4 = sqrt(std::max(0.0,1.0-cos4*cos4));
       
     cosPq = (P0C*q0C-x1/2)/PC/qC;
     sinPq = sqrt(1-cosPq*cosPq);
     
-    if(1-cosPq*cosPq<1.0e-16){
+    if(cosPq*cosPq > 1.0 + 1.0e-10){
       flagkinematics = 1;
-//      std::cout << "Warning: event with extreme kinematics. Numerical precision is insufficient. \n";
-//      std::cout << "cosPq^2-1 = " << (P0C*q0C+x1/2)/PC/qC*(P0C*q0C+x1/2)/PC/qC-1 << "\n\n";
+      //std::cout << "Warning: event with extreme kinematics. Numerical precision is insufficient. \n";
+      //std::cout << "cosPq^2-1 = " << (P0C*q0C-x1/2)/PC/qC*(P0C*q0C-x1/2)/PC/qC-1 << "\n\n";
     }
     
-    cosP1q = (eps1C*q0C+x2)/eps1C/qC;
+    cosP1q = (eps1C*q0C+x2)/sqrt(eps1C*eps1C-m1*m1)/qC;
     sinP1q = sqrt(1-cosP1q*cosP1q);
     
-    if(1-cosP1q*cosP1q<1.0e-16){
+    if(cosP1q*cosP1q > 1.0 + 1.0e-10){
       flagkinematics = 1;
-//      std::cout << "Warning: event with extreme kinematics. Numerical precision is insufficient. \n";
-//      std::cout << "cosP1q^2-1 = " << (eps1C*q0C-x2)/eps1C/qC*(eps1C*q0C-x2)/eps1C/qC-1 << "\n\n";
+      //std::cout << "Warning: event with extreme kinematics. Numerical precision is insufficient. \n";
+      //std::cout << "cosP1q^2-1 = " << (eps1C*q0C+x2)/sqrt(eps1C*eps1C-m1*m1)/qC*(eps1C*q0C+x2)/sqrt(eps1C*eps1C-m1*m1)/qC-1 << "\n\n";
     }
    
-    cosPp1 = (P0C*eps1C+x0)/eps1C/PC;
+    cosPp1 = (P0C*eps1C+x0)/sqrt(eps1C*eps1C-m1*m1)/PC;
     sinPp1 = sqrt(1-cosPp1*cosPp1);
     
-    if(1-cosPp1*cosPp1<1.0e-16){
+    if(cosPp1*cosPp1 > 1.0 + 1.0e-10){
       flagkinematics = 1;
-//      std::cout << "Warning: event with extreme kinematics. Numerical precision is insufficient. \n";
-//      std::cout << "cosPp1^2-1 = " << (P0C*eps1C-x0)/eps1C/PC*(P0C*eps1C-x0)/eps1C/PC-1 << "\n\n";
+      //std::cout << "Warning: event with extreme kinematics. Numerical precision is insufficient. \n";
+      //std::cout << "cosPp1^2-1 = " << (P0C*eps1C+x0)/sqrt(eps1C*eps1C-m1*m1)/PC*(P0C*eps1C+x0)/sqrt(eps1C*eps1C-m1*m1)/PC-1 << "\n\n";
     }
    
     cosPhi = (cosPp1-cosPq*cosP1q)/(sinPq*sinP1q);
@@ -2841,14 +2984,16 @@ void GenerateRandomPoint(){
     
     if(cosPhi>1.01){
       flagkinematics = 1;
-//      std::cout << "Warning: event with extreme kinematics. Numerical precision is insufficient. \n";
-//      std::cout << "cosPhi^2-1 = " << (cosPp1-cosPq*cosP1q)/(sinPq*sinP1q)*(cosPp1-cosPq*cosP1q)/(sinPq*sinP1q)-1 << "\n\n";
+      //std::cout << "Warning: event with extreme kinematics. Numerical precision is insufficient. \n";
+      //std::cout << "cosPhi^2-1 = " << (cosPp1-cosPq*cosP1q)/(sinPq*sinP1q)*(cosPp1-cosPq*cosP1q)/(sinPq*sinP1q)-1 << "\n\n";
     }
       if(1-cosPhi*cosPhi<1.0e-16){
       sinPhi=0.0; // adhoc fix
       cosPhi=1.0; // adhoc fix
     }
-
+    
+    x6 = -eps1C*eps4C+sqrt(eps1C*eps1C-m1*m1)*p4C*(cosP1q*cos4+sinP1q*sin4*cos(phi4));
+    
     x8 = -P0C*eps4C+PC*p4C*(cos4*cosPq+sin4*sinPq*(cos(phi4)*cosPhi-sin(phi4)*sinPhi)); // (B .20) in Lovseth, Radomski
 
     // (B.1) and (B.2) of Lovseth, Radomski
@@ -2865,7 +3010,7 @@ void GenerateRandomPoint(){
     qP = Pq;
     p2P = x1*0.5-x0+x7+x8;
     qp2 = x1-x2+x3+x4;
-    p1p2 = -x2+x5+x6;
+    p1p2 = -x2+x5+x6+m1*m1;
     p2p3 = (-m3*m3+m4*m4+x1)*0.5-x2+x4+x6;
     p2p4 = (-m4*m4+m3*m3+x1)*0.5-x2+x3+x5;
     p3p4 = (-m3*m3-m4*m4-x1)*0.5+x2-x3-x4-x5-x6;
@@ -2873,30 +3018,30 @@ void GenerateRandomPoint(){
    
     // Define the 4 momenta of the events
     
-    Enuin = sqrt(eps1*eps1+mmu2);
+    Enuin = eps1;
     pnuinx = 0.0;
     pnuiny = 0.0;
-    pnuinz = eps1;
+    pnuinz = sqrt(eps1*eps1-m1*m1);
     
     // note that signs are such that the metric of Lovseth, Radomski is not taken into account
     
     Eq = qP/M;
-    qz = Eq-qp1/eps1;
-    qy = sqrt(-q2+2*Eq*qp1/eps1-qp1*qp1/eps1/eps1);
+    qz = (Enuin*Eq-qp1)/pnuinz;
+    qy = sqrt(Eq*Eq - qz*qz - q2);
     qx = 0.0;
     
     Elplus = p3P/M;
-    plplusz = Elplus-p1p3/eps1; 
+    plplusz = (Enuin*Elplus-p1p3)/pnuinz; 
     plplusy = (Eq*Elplus-qp3-qz*plplusz)/qy;
-    plplusx = sqrt(2*Elplus*p1p3/eps1-p1p3*p1p3/eps1/eps1-plplusy*plplusy-m3*m3);
+    plplusx = sqrt(Elplus*Elplus-m3*m3-plplusz*plplusz-plplusy*plplusy);
 
-    Enuout = sqrt(p2P/M*p2P/M+mmu2); 
-    pnuoutz = Enuout-p1p2/eps1;
+    Enuout = Enuout = p2P/M; 
+    pnuoutz = (Enuin*Enuout-p1p2)/pnuinz;
     pnuouty = (Eq*Enuout-qp2-qz*pnuoutz)/qy;
-    pnuoutx = 1/plplusx*(-p2p3-p1p2*p1p3/eps1/eps1+p1p2*Elplus/eps1+p1p3*Enuout/eps1-pnuouty*plplusy);
+    pnuoutx = (Enuout*Elplus - p2p3- pnuouty*plplusy- pnuoutz*plplusz)/plplusx;
     
     Elminus = p4P/M;
-    plminusz = Elminus-p1p4/eps1;
+    plminusz = (Enuin*Elminus - p1p4)/pnuinz;
     plminusy = (Eq*Elminus-qp4-qz*plminusz)/qy;
     plminusx = -plplusx-pnuoutx;
         
@@ -3032,2046 +3177,7 @@ void GenerateRandomPoint(){
     
     return;
 }
-
-
-//*****************************************************************
-// squared matrix elements for muon tridents
-//*****************************************************************
-
-double SquaredMatrixElementPLPmuon(double GFV, double GFA){
-
-    double GFA2, GFV2, GFAGFV, result;
-    double m32,m12;
-    
-    GFA2 = GFA*GFA;
-    GFV2 = GFV*GFV;
-    GFAGFV = GFA*GFV;
-    m32 = m3*m3;
-    m12 = 0.1057*0.1057;
-
-/*    
-      // result considering Bethe Heither process
-      result = (256*(2*M2*(qp4)*m12*(qp3)*(qp3)*(qp3)-
-                8*(p1P)*(p2P)*(qp4)*(qp4)*(qp3)*(qp3)+
-                4*M2*(p1p2)*(qp4)*(qp4)*(qp3)*(qp3)-
-                M2*(p3p4)*q2*m12*(qp3)*(qp3)-
-                2*M2*(qp4)*q2*m12*(qp3)*(qp3)+
-                4*(p2P)*(Pq)*(p1p4)*(qp4)*(qp3)*(qp3)-
-                2*M2*(qp1)*(p2p3)*(qp4)*(qp3)*(qp3)+
-                4*(p1P)*(Pq)*(p2p4)*(qp4)*(qp3)*(qp3)-
-                2*M2*(qp1)*(p2p4)*(qp4)*(qp3)*(qp3)-
-                2*M2*(p1p3)*(qp2)*(qp4)*(qp3)*(qp3)-
-                2*M2*(p1p4)*(qp2)*(qp4)*(qp3)*(qp3)-
-                2*(p2P)*(Pq)*(p1p4)*q2*(qp3)*(qp3)+
-                M2*(p1p4)*(p2p3)*q2*(qp3)*(qp3)-
-                2*(p1P)*(Pq)*(p2p4)*q2*(qp3)*(qp3)+
-                M2*(p1p3)*(p2p4)*q2*(qp3)*(qp3)+
-                M2*(qp1)*(p2p4)*q2*(qp3)*(qp3)+
-                M2*(p1p4)*(qp2)*q2*(qp3)*(qp3)+
-                4*(p1P)*(p2P)*(qp4)*q2*(qp3)*(qp3)-
-                2*M2*(p1p2)*(qp4)*q2*(qp3)*(qp3)+
-                4*(p2P)*(Pq)*(p1p3)*(qp4)*(qp4)*(qp3)+
-                4*(p1P)*(Pq)*(p2p3)*(qp4)*(qp4)*(qp3)-
-                2*M2*(qp1)*(p2p3)*(qp4)*(qp4)*(qp3)-
-                2*M2*(qp1)*(p2p4)*(qp4)*(qp4)*(qp3)-
-                2*M2*(p1p3)*(qp2)*(qp4)*(qp4)*(qp3)-
-                2*M2*(p1p4)*(qp2)*(qp4)*(qp4)*(qp3)+
-                (p2P)*(Pq)*(p1p4)*q2*q2*(qp3)-
-                2*M2*(p1p4)*(p2p3)*q2*q2*(qp3)+
-                (p1P)*(Pq)*(p2p4)*q2*q2*(qp3)-
-                2*M2*(p1p3)*(p2p4)*q2*q2*(qp3)-
-                M2*(qp1)*(p2p4)*q2*q2*(qp3)-
-                M2*(p1p4)*(qp2)*q2*q2*(qp3)-
-                2*(p1P)*(p2P)*(p3p4)*q2*q2*(qp3)+
-                2*M2*(p1p2)*(p3p4)*q2*q2*(qp3)-
-                2*(p1P)*(p2P)*(qp4)*q2*q2*(qp3)+
-                M2*(p1p2)*(qp4)*q2*q2*(qp3)+
-                2*M2*(qp4)*(qp4)*(qp4)*m12*(qp3)+
-                M2*(qp4)*q2*q2*m12*(qp3)-
-                2*M2*(qp4)*(qp4)*q2*m12*(qp3)+
-                2*M2*(p3p4)*(qp4)*q2*m12*(qp3)-
-                4*(qP)*(qP)*(p1p4)*(p2p3)*(qp4)*(qp3)-
-                4*(qP)*(qP)*(p1p3)*(p2p4)*(qp4)*(qp3)+
-                4*(qP)*(qP)*(p1p2)*(p3p4)*(qp4)*(qp3)-
-                4*(p2P)*(Pq)*(qp1)*(p3p4)*(qp4)*(qp3)-
-                4*(p1P)*(Pq)*(qp2)*(p3p4)*(qp4)*(qp3)+
-                4*M2*(qp1)*(qp2)*(p3p4)*(qp4)*(qp3)+
-                4*(p1P)*(p2P)*(qp4)*(qp4)*q2*(qp3)-
-                2*M2*(p1p2)*(qp4)*(qp4)*q2*(qp3)+
-                2*(qP)*(qP)*(p1p4)*(p2p3)*q2*(qp3)+
-                2*(qP)*(qP)*(p1p3)*(p2p4)*q2*(qp3)-
-                2*(qP)*(qP)*(p1p2)*(p3p4)*q2*(qp3)+
-                2*(p2P)*(Pq)*(qp1)*(p3p4)*q2*(qp3)+
-                2*(p1P)*(Pq)*(qp2)*(p3p4)*q2*(qp3)-
-                2*M2*(qp1)*(qp2)*(p3p4)*q2*(qp3)-
-                2*(p2P)*(Pq)*(p1p3)*(qp4)*q2*(qp3)-
-                2*(p2P)*(Pq)*(p1p4)*(qp4)*q2*(qp3)-
-                2*(p1P)*(Pq)*(p2p3)*(qp4)*q2*(qp3)+
-                2*M2*(p1p4)*(p2p3)*(qp4)*q2*(qp3)+
-                3*M2*(qp1)*(p2p3)*(qp4)*q2*(qp3)-
-                2*(p1P)*(Pq)*(p2p4)*(qp4)*q2*(qp3)+
-                2*M2*(p1p3)*(p2p4)*(qp4)*q2*(qp3)+
-                3*M2*(qp1)*(p2p4)*(qp4)*q2*(qp3)+
-                3*M2*(p1p3)*(qp2)*(qp4)*q2*(qp3)+
-                3*M2*(p1p4)*(qp2)*(qp4)*q2*(qp3)+
-                4*(p1P)*(p2P)*(p3p4)*(qp4)*q2*(qp3)-
-                4*M2*(p1p2)*(p3p4)*(qp4)*q2*(qp3)+
-                M2*(p1p4)*(p2p3)*q2*q2*q2+
-                M2*(p1p3)*(p2p4)*q2*q2*q2+
-                (p1P)*(p2P)*(p3p4)*q2*q2*q2-
-                M2*(p1p2)*(p3p4)*q2*q2*q2-
-                (qP)*(qP)*(p1p4)*(p2p3)*q2*q2-
-                (qP)*(qP)*(p1p3)*(p2p4)*q2*q2+
-                (qP)*(qP)*(p1p2)*(p3p4)*q2*q2-
-                (p2P)*(Pq)*(qp1)*(p3p4)*q2*q2-
-                (p1P)*(Pq)*(qp2)*(p3p4)*q2*q2+
-                M2*(qp1)*(qp2)*(p3p4)*q2*q2+
-                (p2P)*(Pq)*(p1p3)*(qp4)*q2*q2+
-                (p1P)*(Pq)*(p2p3)*(qp4)*q2*q2-
-                2*M2*(p1p4)*(p2p3)*(qp4)*q2*q2-
-                M2*(qp1)*(p2p3)*(qp4)*q2*q2-
-                2*M2*(p1p3)*(p2p4)*(qp4)*q2*q2-
-                M2*(p1p3)*(qp2)*(qp4)*q2*q2-
-                2*(p1P)*(p2P)*(p3p4)*(qp4)*q2*q2+
-                2*M2*(p1p2)*(p3p4)*(qp4)*q2*q2-
-                M2*(p3p4)*(qp4)*(qp4)*q2*m12+
-                (((p1p2)*(qp3-qp4)*(qp3-qp4)*q2-
-                (qp1)*(qp2)*(2*(qp3)-q2)*(q2-2*(qp4)))*M2+
-                (-q2*(q2*q2-2*(qp3+qp4)*q2+2*((qp3)*(qp3)+
-                (qp4)*(qp4)))*M2-
-                (qP)*(qP)*(2*(qp3)-q2)*(q2-2*(qp4)))*m12+
-                (p1P)*(Pq)*(qp2)*(2*(qp3)-q2)*(q2-2*(qp4))-
-                (p2P)*(2*(qp3)-q2)*(q2-2*(qp4))*((p1P)*q2-(Pq)*(qp1)))*m32-
-                2*(p2P)*(Pq)*(p1p3)*(qp4)*(qp4)*q2-
-                2*(p1P)*(Pq)*(p2p3)*(qp4)*(qp4)*q2+
-                M2*(p1p4)*(p2p3)*(qp4)*(qp4)*q2+
-                M2*(qp1)*(p2p3)*(qp4)*(qp4)*q2+
-                M2*(p1p3)*(p2p4)*(qp4)*(qp4)*q2+
-                M2*(p1p3)*(qp2)*(qp4)*(qp4)*q2+
-                2*(qP)*(qP)*(p1p4)*(p2p3)*(qp4)*q2+
-                2*(qP)*(qP)*(p1p3)*(p2p4)*(qp4)*q2-
-                2*(qP)*(qP)*(p1p2)*(p3p4)*(qp4)*q2+
-                2*(p2P)*(Pq)*(qp1)*(p3p4)*(qp4)*q2+
-                2*(p1P)*(Pq)*(qp2)*(p3p4)*(qp4)*q2-
-                2*M2*(qp1)*(qp2)*(p3p4)*(qp4)*q2+
-                (p4P)*(p4P)*(2*(qp3)-q2)*(2*(qp3)*(qp3)*m12-
-                2*(p3p4)*(qp3)*m12+2*(qp3)*(qp4)*m12+
-                (p3p4)*q2*m12-2*(qp3)*q2*m12+
-                (2*(qp3)-q2)*(p1p2-2*m12)*m32+
-                2*(p1p3)*(p2p4)*(qp3)-2*(p1p3)*(qp2)*(qp3)+
-                (p1p4)*(p2p3)*(2*(qp3)-q2)-(p1p3)*(p2p4)*q2+
-                (p1p3)*(qp2)*q2+(qp1)*(p2p3)*(q2-2*(qp3)))+
-                (p3P)*(p3P)*(2*(qp4)-q2)*(2*(qp4)*(qp4)*m12-
-                2*(p3p4)*(qp4)*m12+2*(qp3)*(qp4)*m12+(p3p4)*q2*m12-
-                2*(qp4)*q2*m12+(2*(qp4)-q2)*(p1p2-2*m12)*m32-2*(qp1)*(p2p4)*(qp4)+
-                (p1p3)*(p2p4)*(2*(qp4)-q2)+(p1p4)*(p2p3-qp2)*(2*(qp4)-q2)+
-                (qp1)*(p2p4)*q2)+(p3P)*(2*(qp4)-q2)*((Pq)*(-2*(qp4)*(qp4)*m12-
-                2*(p3p4)*(qp3)*m12+2*(p3p4)*(qp4)*m12+(qp4)*q2*m12+
-                2*(qp3-qp4)*(p1p2-2*m12)*m32+2*(p1p3)*(p2p4)*(qp3-qp4)+
-                2*(qp1)*(p2p4)*(qp4)-2*(p1p2)*(qp3)*(qp4)+
-                (p1p4)*(2*(p2p3)*(qp3-qp4)+(qp2)*(2*(qp4)-q2))-
-                (qp1)*(p2p4)*q2+(p1p2)*(qp4)*q2)-
-                (2*(qp3)-q2)*((p2P)*((p1p3-p1p4-qp1)*(qp4)+
-                (p1p4)*q2)+(p1P)*((p2p3-p2p4-qp2)*(qp4)+
-                (p2p4)*q2)))-(p4P)*(2*(qp3)-q2)*((Pq)*(2*(qp3)*(qp3)*m12-
-                2*(p3p4)*(qp3)*m12+2*(p3p4)*(qp4)*m12-(qp3)*q2*m12+2*(qp3-
-                qp4)*(p1p2-2*m12)*m32+2*(p1p3)*(p2p4)*(qp3)-
-                2*(p1p3)*(qp2)*(qp3)+2*(p1p4)*(p2p3)*(qp3-qp4)-
-                2*(p1p3)*(p2p4)*(qp4)+2*(p1p2)*(qp3)*(qp4)+
-                (p1p3)*(qp2)*q2-(p1p2)*(qp3)*q2+
-                (qp1)*(p2p3)*(q2-2*(qp3)))+(2*(qp4)-q2)*(-(((p2P)*(p1p3-p1p4+qp1)+
-                (p1P)*(p2p3-p2p4+qp2))*(qp3))+
-                ((p2P)*(p1p3)+(p1P)*(p2p3))*q2+(p3P)*(2*(-(p3p4)+qp3+qp4)*m12+
-                2*(p1p2-2*m12)*m32-(qp1)*(p2p3+p2p4-2*(qp2))+(p1p4)*(2*(p2p3)-qp2)+
-                (p1p3)*(2*(p2p4)-qp2)-q2*(m12 + p1p2))))))/(q2*q2*(q2-2*(qp3))*(q2-2*(qp3))*(q2-2*(qp4))*(q2-2*(qp4))*(2*m32+2*(p3p4)-
-                2*(qp3)-2*(qp4)+q2)*(2*m32+2*(p3p4)-2*(qp3)-2*(qp4)+q2));  
- */     
-      // result considering radiative process too
-      result = (128*M2*m12*m12*m32)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) - (
- 256*M2*m12*m32*m32)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) + (
- 128*M2*m12*m32*p1p2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) + (
- 128*M2*m32*m32*p1p2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) + (
- 128*M2*m12*m32*p1p3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) + (
- 128*M2*m12*m32*p1p4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) - (
- 256*m12*m32*p1P*p2P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) - (
- 256*m32*m32*p1P*p2P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) - (
- 128*M2*m32*p1p2*p2p3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) - (
- 256*M2*m32*p1p3*p2p3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) - (
- 128*M2*m32*p1p4*p2p3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) + (
- 256*m32*p1P*p2P*p2p3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) + (
- 128*M2*p1p4*p2p3*p2p3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) - (
- 128*M2*m32*p1p2*p2p4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) - (
- 128*M2*m32*p1p3*p2p4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) - (
- 256*M2*m32*p1p4*p2p4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) + (
- 256*m32*p1P*p2P*p2p4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) + (
- 256*M2*m12*p2p3*p2p4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) - (
- 256*M2*p1p2*p2p3*p2p4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) - (
- 128*M2*p1p3*p2p3*p2p4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) - (
- 128*M2*p1p4*p2p3*p2p4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) + (
- 512*p1P*p2P*p2p3*p2p4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) + (
- 128*M2*p1p3*p2p4*p2p4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) - (
- 256*m12*m32*p1P*p3P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) + (
- 512*m32*p1P*p2p3*p3P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) + (
- 256*m32*p1P*p2p4*p3P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) + (
- 256*p1P*p2p3*p2p4*p3P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) - (
- 256*p1P*p2p4*p2p4*p3P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) - (
- 128*M2*m12*m12*p3p4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) - (
- 384*M2*m12*m32*p3p4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) + (
- 128*M2*m12*p1p2*p3p4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) + (
- 128*M2*m32*p1p2*p3p4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) + (
- 128*M2*m12*p1p3*p3p4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) + (
- 128*M2*m12*p1p4*p3p4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) - (
- 256*m12*p1P*p2P*p3p4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) - (
- 256*m32*p1P*p2P*p3p4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) - (
- 128*M2*p1p2*p2p3*p3p4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) - (
- 128*M2*p1p3*p2p3*p3p4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) + (
- 256*p1P*p2P*p2p3*p3p4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) - (
- 128*M2*p1p2*p2p4*p3p4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) - (
- 128*M2*p1p4*p2p4*p3p4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) + (
- 256*p1P*p2P*p2p4*p3p4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) - (
- 256*m12*p1P*p3P*p3p4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) + (
- 256*p1P*p2p3*p3P*p3p4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) - (
- 128*M2*m12*p3p4*p3p4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) - (
- 256*m12*m32*p1P*p4P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) + (
- 256*m32*p1P*p2p3*p4P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) - (
- 256*p1P*p2p3*p2p3*p4P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) + (
- 512*m32*p1P*p2p4*p4P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) + (
- 256*p1P*p2p3*p2p4*p4P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) - (
- 256*m12*p1P*p3p4*p4P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) + (
- 256*p1P*p2p4*p3p4*p4P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) - (
- 32*m12*m12*m32)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2) - (
- 64*m12*m32*m32)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2) + (
- 32*m12*m32*p1p2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2) + (
- 32*m32*m32*p1p2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2) + (
- 32*m12*m32*p1p3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2) + (
- 32*m12*m32*p1p4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2) - (
- 32*m32*p1p2*p2p3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2) - (
- 64*m32*p1p3*p2p3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2) - (
- 32*m32*p1p4*p2p3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2) + (
- 32*p1p4*p2p3*p2p3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2) - (
- 32*m32*p1p2*p2p4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2) - (
- 32*m32*p1p3*p2p4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2) - (
- 64*m32*p1p4*p2p4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2) + (
- 64*m12*p2p3*p2p4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2) - (
- 64*p1p2*p2p3*p2p4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2) - (
- 32*p1p3*p2p3*p2p4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2) - (
- 32*p1p4*p2p3*p2p4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2) + (
- 32*p1p3*p2p4*p2p4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2) - (
- 32*m12*m12*p3p4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2) - (
- 96*m12*m32*p3p4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2) + (
- 32*m12*p1p2*p3p4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2) + (
- 32*m32*p1p2*p3p4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2) + (
- 32*m12*p1p3*p3p4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2) + (
- 32*m12*p1p4*p3p4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2) - (
- 32*p1p2*p2p3*p3p4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2) - (
- 32*p1p3*p2p3*p3p4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2) - (
- 32*p1p2*p2p4*p3p4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2) - (
- 32*p1p4*p2p4*p3p4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2) - (
- 32*m12*p3p4*p3p4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2) + (
- 128*m12*m12*m32*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) + (
- 256*m12*m32*m32*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) - (
- 128*m12*m32*p1p2*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) - (
- 128*m32*m32*p1p2*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) - (
- 128*m12*m32*p1p3*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) - (
- 128*m12*m32*p1p4*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) + (
- 128*m32*p1p2*p2p3*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) + (
- 256*m32*p1p3*p2p3*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) + (
- 128*m32*p1p4*p2p3*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) - (
- 128*p1p4*p2p3*p2p3*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) + (
- 128*m32*p1p2*p2p4*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) + (
- 128*m32*p1p3*p2p4*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) + (
- 256*m32*p1p4*p2p4*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) - (
- 256*m12*p2p3*p2p4*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) + (
- 256*p1p2*p2p3*p2p4*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) + (
- 128*p1p3*p2p3*p2p4*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) + (
- 128*p1p4*p2p3*p2p4*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) - (
- 128*p1p3*p2p4*p2p4*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) + (
- 128*m12*m12*p3p4*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) + (
- 384*m12*m32*p3p4*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) - (
- 128*m12*p1p2*p3p4*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) - (
- 128*m32*p1p2*p3p4*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) - (
- 128*m12*p1p3*p3p4*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) - (
- 128*m12*p1p4*p3p4*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) + (
- 128*p1p2*p2p3*p3p4*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) + (
- 128*p1p3*p2p3*p3p4*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) + (
- 128*p1p2*p2p4*p3p4*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) + (
- 128*p1p4*p2p4*p3p4*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) + (
- 128*m12*p3p4*p3p4*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) + (
- 128*m12*m32*p2P*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) + (
- 128*m32*m32*p2P*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) - (
- 128*m32*p2P*p2p3*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) - (
- 128*m32*p2P*p2p4*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) - (
- 256*p2P*p2p3*p2p4*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) + (
- 128*m12*m32*p3P*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) - (
- 256*m32*p2p3*p3P*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) - (
- 128*m32*p2p4*p3P*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) - (
- 128*p2p3*p2p4*p3P*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) + (
- 128*p2p4*p2p4*p3P*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) + (
- 128*m12*p2P*p3p4*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) + (
- 128*m32*p2P*p3p4*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) - (
- 128*p2P*p2p3*p3p4*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) - (
- 128*p2P*p2p4*p3p4*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) + (
- 128*m12*p3P*p3p4*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) - (
- 128*p2p3*p3P*p3p4*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) + (
- 128*m12*m32*p4P*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) - (
- 128*m32*p2p3*p4P*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) + (
- 128*p2p3*p2p3*p4P*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) - (
- 256*m32*p2p4*p4P*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) - (
- 128*p2p3*p2p4*p4P*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) + (
- 128*m12*p3p4*p4P*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) - (
- 128*p2p4*p3p4*p4P*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) - (
- 32*m12*m32)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(q2 - 2*qp2)*(q2 - 2*qp2)) + (
- 16*m32*p1p2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(q2 - 2*qp2)*(q2 - 2*qp2)) + (
- 16*p1p4*p2p3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(q2 - 2*qp2)*(q2 - 2*qp2)) + (
- 16*p1p3*p2p4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(q2 - 2*qp2)*(q2 - 2*qp2)) - (
- 16*m12*p3p4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(q2 - 2*qp2)*(q2 - 2*qp2)) - (
- 512*m12*m32*p2P*p2P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp2)) + (
- 256*m32*p1p2*p2P*p2P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp2)) + (
- 256*p1p4*p2P*p2P*p2p3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp2)) + (
- 256*p1p3*p2P*p2P*p2p4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp2)) - (
- 256*m12*p2P*p2P*p3p4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp2)) - (
- 128*M2*m12*m32)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp2)) + (
- 64*M2*m32*p1p2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp2)) - (
- 256*m12*m32*p2P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp2)) - (
- 128*m32*p1P*p2P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp2)) + (
- 128*m32*p1p2*p2P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp2)) + (
- 64*M2*p1p4*p2p3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp2)) + (
- 128*p1p4*p2P*p2p3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp2)) + (
- 64*M2*p1p3*p2p4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp2)) + (
- 128*p1p3*p2P*p2p4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp2)) - (
- 128*p1p4*p2P*p3P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp2)) - (
- 64*M2*m12*p3p4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp2)) - (
- 128*m12*p2P*p3p4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp2)) - (
- 128*p1p3*p2P*p4P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp2)) + (
- 512*m12*m32*p2P*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp2)) - (
- 256*m32*p1p2*p2P*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp2)) - (
- 256*p1p4*p2P*p2p3*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp2)) - (
- 256*p1p3*p2P*p2p4*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp2)) + (
- 256*m12*p2P*p3p4*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp2)) + (
- 128*m12*m32*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp2)) - (
- 64*m32*p1p2*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp2)) - (
- 64*p1p4*p2p3*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp2)) - (
- 64*p1p3*p2p4*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp2)) + (
- 64*m12*p3p4*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp2)) - (
- 256*m32*p2P*p2P*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp2)) - (
- 64*m32*p2P*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp2)) + (
- 256*m32*p2P*qP*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp2)) - (
- 256*m12*m32*p1P*p2P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 256*m12*m32*p2P*p2P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 256*m32*p1p3*p2P*p2P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 256*m32*p1p4*p2P*p2P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 512*m32*p1P*p2P*p2p3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 256*p1p4*p2P*p2P*p2p3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 512*m32*p1P*p2P*p2p4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 256*p1p3*p2P*p2P*p2p4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 512*p1P*p2P*p2p3*p2p4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 512*m12*m32*p2P*p3P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 256*m32*p1p2*p2P*p3P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 256*p1p4*p2P*p2p3*p3P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 256*m12*p2P*p2p4*p3P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 256*p1p2*p2P*p2p4*p3P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 256*p1p4*p2P*p2p4*p3P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 256*m12*p1P*p2P*p3p4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 256*m12*p2P*p2P*p3p4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 256*p1P*p2P*p2p3*p3p4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 256*p1P*p2P*p2p4*p3p4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 256*m12*p2P*p3P*p3p4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 512*m12*m32*p2P*p4P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 256*m32*p1p2*p2P*p4P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 256*m12*p2P*p2p3*p4P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 256*p1p2*p2P*p2p3*p4P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 256*p1p3*p2P*p2p3*p4P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 256*p1p3*p2P*p2p4*p4P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 256*m12*p2P*p3p4*p4P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 128*m32*p1p2*p2P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp2)) - (
- 128*m32*p1p3*p2P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp2)) - (
- 128*m32*p1p4*p2P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp2)) + (
- 128*m32*p1P*p2p3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp2)) + (
- 128*p1p4*p2P*p2p3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp2)) + (
- 128*m32*p1P*p2p4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp2)) + (
- 128*p1p3*p2P*p2p4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp2)) - (
- 192*m12*m32*p3P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp2)) + (
- 64*m32*p1p2*p3P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp2)) + (
- 64*p1p4*p2p3*p3P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp2)) + (
- 64*p1p3*p2p4*p3P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp2)) - (
- 128*p1p4*p2p4*p3P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp2)) - (
- 128*p1p2*p2P*p3p4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp2)) + (
- 128*p1P*p2p3*p3p4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp2)) + (
- 128*p1P*p2p4*p3p4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp2)) - (
- 64*m12*p3P*p3p4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp2)) - (
- 64*p1p2*p3P*p3p4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp2)) - (
- 192*m12*m32*p4P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp2)) + (
- 64*m32*p1p2*p4P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp2)) - (
- 128*p1p3*p2p3*p4P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp2)) + (
- 64*p1p4*p2p3*p4P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp2)) + (
- 64*p1p3*p2p4*p4P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp2)) - (
- 64*m12*p3p4*p4P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp2)) - (
- 64*p1p2*p3p4*p4P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp2)) + (
- 256*m32*p1p2*p2P*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 256*m32*p1p3*p2P*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 256*m32*p1p4*p2P*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 256*m32*p1P*p2p3*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 256*p1p4*p2P*p2p3*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 256*m32*p1P*p2p4*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 256*p1p3*p2P*p2p4*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 384*m12*m32*p3P*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 128*m32*p1p2*p3P*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 128*p1p4*p2p3*p3P*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 128*p1p3*p2p4*p3P*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 256*p1p4*p2p4*p3P*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 256*p1p2*p2P*p3p4*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 256*p1P*p2p3*p3p4*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 256*p1P*p2p4*p3p4*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 128*m12*p3P*p3p4*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 128*p1p2*p3P*p3p4*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 384*m12*m32*p4P*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 128*m32*p1p2*p4P*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 256*p1p3*p2p3*p4P*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 128*p1p4*p2p3*p4P*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 128*p1p3*p2p4*p4P*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 128*m12*p3p4*p4P*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 128*p1p2*p3p4*p4P*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 128*M2*m12*m32*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 128*m12*m32*p2P*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 256*m32*p2P*p2P*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 256*m32*p2P*p2p3*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 256*m32*p2P*p2p4*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 256*M2*p2p3*p2p4*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 256*p2P*p2p3*p2p4*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 128*m32*p2P*p3P*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 256*p2P*p2p4*p3P*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 128*p2p4*p3P*p3P*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 128*M2*m12*p3p4*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 128*m12*p2P*p3p4*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 256*p2P*p2P*p3p4*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 128*M2*p2p3*p3p4*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 128*p2P*p2p3*p3p4*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 128*M2*p2p4*p3p4*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 128*p2P*p2p4*p3p4*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 128*p2P*p3P*p3p4*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 128*m32*p2P*p4P*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 256*p2P*p2p3*p4P*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 128*p2p3*p3P*p4P*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 128*p2p4*p3P*p4P*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 128*p2P*p3p4*p4P*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 128*p2p3*p4P*p4P*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 32*m12*m32*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp2)) - (
- 64*m32*p2p3*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp2)) - (
- 64*m32*p2p4*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp2)) - (
- 64*p2p3*p2p4*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp2)) + (
- 32*m12*p3p4*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp2)) - (
- 32*p2p3*p3p4*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp2)) - (
- 32*p2p4*p3p4*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp2)) - (
- 128*m12*m32*qP*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 128*m32*p2p3*qP*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 128*m32*p2p4*qP*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 256*p2p3*p2p4*qP*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 128*m12*p3p4*qP*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 128*m12*m32*p1P*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) + (
- 128*m32*m32*p1P*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) - (
- 128*m32*p1P*p2p3*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) - (
- 128*m32*p1P*p2p4*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) - (
- 256*p1P*p2p3*p2p4*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) + (
- 128*m12*p1P*p3p4*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) + (
- 128*m32*p1P*p3p4*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) - (
- 128*p1P*p2p3*p3p4*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) - (
- 128*p1P*p2p4*p3p4*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) - (
- 64*m12*m32*qp1*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) - (
- 64*m32*m32*qp1*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) + (
- 64*m32*p2p3*qp1*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) + (
- 64*m32*p2p4*qp1*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) + (
- 128*p2p3*p2p4*qp1*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) - (
- 64*m12*p3p4*qp1*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) - (
- 64*m32*p3p4*qp1*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) + (
- 64*p2p3*p3p4*qp1*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) + (
- 64*p2p4*p3p4*qp1*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) + (
- 512*m12*m32*p2P*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp2)) + (
- 256*m32*p1P*p2P*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp2)) - (
- 256*m32*p1p2*p2P*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp2)) - (
- 256*p1p4*p2P*p2p3*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp2)) - (
- 256*p1p3*p2P*p2p4*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp2)) + (
- 256*p1p4*p2P*p3P*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp2)) + (
- 256*m12*p2P*p3p4*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp2)) + (
- 256*p1p3*p2P*p4P*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp2)) + (
- 128*m12*m32*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp2)) + (
- 64*m32*p1P*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp2)) - (
- 64*m32*p1p2*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp2)) - (
- 64*p1p4*p2p3*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp2)) - (
- 64*p1p3*p2p4*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp2)) + (
- 64*p1p4*p3P*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp2)) + (
- 64*m12*p3p4*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp2)) + (
- 64*p1p3*p4P*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp2)) - (
- 256*m12*m32*qP*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp2)) + (
- 128*m32*p1p2*qP*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp2)) + (
- 128*p1p4*p2p3*qP*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp2)) + (
- 128*p1p3*p2p4*qP*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp2)) - (
- 128*m12*p3p4*qP*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp2)) - (
- 128*M2*m32*qp1*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp2)) + (
- 128*m32*p2P*qp1*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp2)) + (
- 128*M2*m12*m32*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 128*m12*m32*p1P*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 256*M2*m32*p1p2*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 128*M2*m32*p1p3*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 128*M2*m32*p1p4*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 256*m12*m32*p2P*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 256*m32*p1P*p2P*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 256*m32*p1p3*p2P*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 256*m32*p1p4*p2P*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 256*m32*p1P*p2p3*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 128*M2*p1p4*p2p3*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 256*p1p4*p2P*p2p3*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 256*m32*p1P*p2p4*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 128*M2*p1p3*p2p4*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 256*p1p3*p2P*p2p4*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 256*p1P*p2p3*p2p4*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 256*m12*m32*p3P*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 384*m32*p1P*p3P*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 128*m32*p1p2*p3P*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 128*p1p4*p2p3*p3P*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 128*m12*p2p4*p3P*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 128*p1p2*p2p4*p3P*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 128*p1p4*p2p4*p3P*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 128*p1p4*p3P*p3P*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 128*M2*m12*p3p4*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 128*m12*p1P*p3p4*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 256*M2*p1p2*p3p4*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 256*m12*p2P*p3p4*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 256*p1P*p2P*p3p4*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 128*p1P*p2p3*p3p4*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 128*p1P*p2p4*p3p4*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 128*m12*p3P*p3p4*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 128*p1P*p3P*p3p4*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 256*m12*m32*p4P*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 384*m32*p1P*p4P*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 128*m32*p1p2*p4P*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 128*m12*p2p3*p4P*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 128*p1p2*p2p3*p4P*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 128*p1p3*p2p3*p4P*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 128*p1p3*p2p4*p4P*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 128*p1p3*p3P*p4P*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 128*p1p4*p3P*p4P*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 128*m12*p3p4*p4P*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 128*p1P*p3p4*p4P*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 128*p1p3*p4P*p4P*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 32*m12*m32*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp2)) + (
- 32*m32*p1p3*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp2)) + (
- 32*m32*p1p4*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp2)) - (
- 32*p1p4*p2p3*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp2)) - (
- 32*p1p3*p2p4*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp2)) + (
- 32*m12*p3p4*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp2)) - (
- 128*m12*m32*qP*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 128*m32*p1p2*qP*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 128*m12*p3p4*qP*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 128*p1p2*p3p4*qP*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 64*m12*m32*qp1*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 128*m32*p2P*qp1*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 128*m32*p2p3*qp1*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 128*m32*p2p4*qp1*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 128*p2p3*p2p4*qp1*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 128*m32*p3P*qp1*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 128*p2p4*p3P*qp1*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 64*m12*p3p4*qp1*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 128*p2P*p3p4*qp1*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 64*p2p3*p3p4*qp1*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 64*p2p4*p3p4*qp1*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 128*m32*p4P*qp1*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 128*p2p3*p4P*qp1*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 128*m12*m32*qp2*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp2)) - (
- 128*m32*p1P*qp2*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp2)) + (
- 64*m32*p1p2*qp2*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp2)) + (
- 64*p1p4*p2p3*qp2*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp2)) + (
- 64*p1p3*p2p4*qp2*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp2)) - (
- 128*p1p4*p3P*qp2*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp2)) - (
- 64*m12*p3p4*qp2*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp2)) - (
- 128*p1p3*p4P*qp2*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp2)) - (
- 64*m12*m32*qp2*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 128*m32*p1P*qp2*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 64*m32*p1p3*qp2*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 64*m32*p1p4*qp2*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 64*p1p4*p2p3*qp2*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 64*p1p3*p2p4*qp2*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 64*m12*p3p4*qp2*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 128*p1P*p3p4*qp2*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 128*m12*m32*p1P*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) - (
- 256*m32*p1P*p2p3*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) - (
- 128*m32*p1P*p2p4*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) - (
- 128*p1P*p2p3*p2p4*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) + (
- 128*p1P*p2p4*p2p4*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) + (
- 128*m12*p1P*p3p4*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) - (
- 128*p1P*p2p3*p3p4*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) - (
- 64*m12*m32*qp1*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) + (
- 128*m32*p2p3*qp1*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) + (
- 64*m32*p2p4*qp1*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) + (
- 64*p2p3*p2p4*qp1*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) - (
- 64*p2p4*p2p4*qp1*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) - (
- 64*m12*p3p4*qp1*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) + (
- 64*p2p3*p3p4*qp1*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) - (
- 256*p1p4*p2P*p2P*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp2)) - (
- 64*p1p4*p2P*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp2)) + (
- 256*p1p4*p2P*qP*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp2)) - (
- 128*M2*m12*m32*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 256*m12*m32*p2P*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 256*m32*p1P*p2P*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 128*m32*p1p2*p2P*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 128*p1p4*p2P*p2p3*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 128*M2*m12*p2p4*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 128*M2*p1p2*p2p4*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 128*M2*p1p3*p2p4*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 128*M2*p1p4*p2p4*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 128*m12*p2P*p2p4*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 256*p1P*p2P*p2p4*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 128*p1p2*p2P*p2p4*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 128*p1p4*p2P*p2p4*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 128*p1p4*p2P*p3P*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 128*p1P*p2p4*p3P*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 128*M2*p1p2*p3p4*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 128*m12*p2P*p3p4*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 128*p1p4*p2P*p4P*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 128*p1P*p2p4*p4P*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 128*m12*p3P*p4P*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 128*p1p2*p3P*p4P*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 128*m12*p4P*p4P*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 128*p1p2*p4P*p4P*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 64*m12*m32*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp2)) - (
- 32*m32*p1p2*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp2)) - (
- 32*p1p4*p2p3*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp2)) - (
- 32*m12*p2p4*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp2)) + (
- 32*p1p2*p2p4*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp2)) + (
- 32*p1p4*p2p4*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp2)) + (
- 32*m12*p3p4*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp2)) - (
- 64*m12*m32*qP*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 64*m32*p1p2*qP*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 64*p1p4*p2p3*qP*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 128*m12*p2p4*qP*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 128*p1p2*p2p4*qP*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 64*p1p3*p2p4*qP*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 64*m12*p3p4*qP*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 64*p1p2*p3p4*qP*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 192*m32*p2P*qp1*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 64*p2p4*p3P*qp1*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 64*p2P*p3p4*qp1*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 64*p2p3*p4P*qp1*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 128*M2*p1p4*qp2*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp2)) + (
- 128*p1p4*p2P*qp2*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp2)) - (
- 128*m12*m32*qp2*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 64*m32*p1P*qp2*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 64*m32*p1p2*qp2*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 64*p1p4*p2p3*qp2*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 64*m12*p2p4*qp2*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 128*p1P*p2p4*qp2*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 64*p1p2*p2p4*qp2*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 64*p1p4*p2p4*qp2*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 64*p1p4*p3P*qp2*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 64*m12*p3p4*qp2*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 64*p1P*p3p4*qp2*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 64*p1p3*p4P*qp2*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 64*p1p4*p2P*qp3*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 64*p1P*p2p4*qp3*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 64*m12*p4P*qp3*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 64*p1p2*p4P*qp3*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 32*m12*m32)/((q2 - 2*qp3)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 16*m32*p1p2)/((q2 - 2*qp3)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 16*p1p4*p2p3)/((q2 - 2*qp3)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 16*p1p3*p2p4)/((q2 - 2*qp3)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 16*m12*p3p4)/((q2 - 2*qp3)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (512*m12*m32*p3P*p3P)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*m32*p1p2*p3P*p3P)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*p1p4*p2p3*p3P*p3P)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*p1p3*p2p4*p3P*p3P)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*m12*p3P*p3P*p3p4)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*M2*m12*m32)/(
- q2*(q2 - 2*qp3)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*M2*m32*p1p2)/(
- q2*(q2 - 2*qp3)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*M2*p1p4*p2p3)/(
- q2*(q2 - 2*qp3)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*M2*p1p3*p2p4)/(
- q2*(q2 - 2*qp3)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*m12*m32*p3P)/(
- q2*(q2 - 2*qp3)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*m32*p1p2*p3P)/(
- q2*(q2 - 2*qp3)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p1p4*p2P*p3P)/(
- q2*(q2 - 2*qp3)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p1p4*p2p3*p3P)/(
- q2*(q2 - 2*qp3)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p1P*p2p4*p3P)/(
- q2*(q2 - 2*qp3)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p1p3*p2p4*p3P)/(
- q2*(q2 - 2*qp3)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*M2*m12*p3p4)/(
- q2*(q2 - 2*qp3)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*m12*p3P*p3p4)/(
- q2*(q2 - 2*qp3)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*m12*p3P*p4P)/(
- q2*(q2 - 2*qp3)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 512*m12*m32*p3P*qP)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*m32*p1p2*p3P*qP)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*p1p4*p2p3*p3P*qP)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*p1p3*p2p4*p3P*qP)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*m12*p3P*p3p4*qP)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*m12*m32*qP)/(
- q2*(q2 - 2*qp3)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*m32*p1p2*qP)/(
- q2*(q2 - 2*qp3)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*p1p4*p2p3*qP)/(
- q2*(q2 - 2*qp3)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*p1p3*p2p4*qP)/(
- q2*(q2 - 2*qp3)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*m12*p3p4*qP)/(
- q2*(q2 - 2*qp3)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*p2p4*p3P*p3P*qp1)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*p2p4*p3P*qp1)/(
- q2*(q2 - 2*qp3)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*p2p4*p3P*qP*qp1)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*p1p4*p3P*p3P*qp2)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*p1p4*p3P*qp2)/(
- q2*(q2 - 2*qp3)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*p1p4*p3P*qP*qp2)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 512*m12*m32*p3P*qp3)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*m32*p1p2*p3P*qp3)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*p1p4*p2P*p3P*qp3)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*p1p4*p2p3*p3P*qp3)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*p1P*p2p4*p3P*qp3)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*p1p3*p2p4*p3P*qp3)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*m12*p3P*p3p4*qp3)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*m12*p3P*p4P*qp3)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*m12*m32*qp3)/(
- q2*(q2 - 2*qp3)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*m32*p1p2*qp3)/(
- q2*(q2 - 2*qp3)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*p1p4*p2P*qp3)/(
- q2*(q2 - 2*qp3)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*p1p4*p2p3*qp3)/(
- q2*(q2 - 2*qp3)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*p1P*p2p4*qp3)/(
- q2*(q2 - 2*qp3)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*p1p3*p2p4*qp3)/(
- q2*(q2 - 2*qp3)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*m12*p3p4*qp3)/(
- q2*(q2 - 2*qp3)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*m12*p4P*qp3)/(
- q2*(q2 - 2*qp3)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*m12*m32*qP*qp3)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*m32*p1p2*qP*qp3)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p1p4*p2p3*qP*qp3)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p1p3*p2p4*qP*qp3)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*m12*p3p4*qP*qp3)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*M2*p2p4*qp1*qp3)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p2p4*p3P*qp1*qp3)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*M2*p1p4*qp2*qp3)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p1p4*p3P*qp2*qp3)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*m12*m32*qp3*qp3)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*m32*p1p2*qp3*qp3)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p1p4*p2P*qp3*qp3)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*p1p4*p2p3*qp3*qp3)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p1P*p2p4*qp3*qp3)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*p1p3*p2p4*qp3*qp3)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*m12*p3p4*qp3*qp3)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*m12*p4P*qp3*qp3)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 32*m12*m32)/((q2 - 2*qp4)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 16*m32*p1p2)/((q2 - 2*qp4)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 16*p1p4*p2p3)/((q2 - 2*qp4)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 16*p1p3*p2p4)/((q2 - 2*qp4)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 16*m12*p3p4)/((q2 - 2*qp4)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (512*m12*m32*p4P*p4P)/(
- q2*q2*(q2 - 2*qp4)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*m32*p1p2*p4P*p4P)/(
- q2*q2*(q2 - 2*qp4)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*p1p4*p2p3*p4P*p4P)/(
- q2*q2*(q2 - 2*qp4)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*p1p3*p2p4*p4P*p4P)/(
- q2*q2*(q2 - 2*qp4)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*m12*p3p4*p4P*p4P)/(
- q2*q2*(q2 - 2*qp4)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*M2*m12*m32)/(
- q2*(q2 - 2*qp4)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*M2*m32*p1p2)/(
- q2*(q2 - 2*qp4)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*M2*p1p4*p2p3)/(
- q2*(q2 - 2*qp4)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*M2*p1p3*p2p4)/(
- q2*(q2 - 2*qp4)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*M2*m12*p3p4)/(
- q2*(q2 - 2*qp4)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*m12*m32*p4P)/(
- q2*(q2 - 2*qp4)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*m32*p1p2*p4P)/(
- q2*(q2 - 2*qp4)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p1p3*p2P*p4P)/(
- q2*(q2 - 2*qp4)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p1P*p2p3*p4P)/(
- q2*(q2 - 2*qp4)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p1p4*p2p3*p4P)/(
- q2*(q2 - 2*qp4)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p1p3*p2p4*p4P)/(
- q2*(q2 - 2*qp4)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*m12*p3P*p4P)/(
- q2*(q2 - 2*qp4)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*m12*p3p4*p4P)/(
- q2*(q2 - 2*qp4)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 512*m12*m32*p4P*qP)/(
- q2*q2*(q2 - 2*qp4)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*m32*p1p2*p4P*qP)/(
- q2*q2*(q2 - 2*qp4)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*p1p4*p2p3*p4P*qP)/(
- q2*q2*(q2 - 2*qp4)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*p1p3*p2p4*p4P*qP)/(
- q2*q2*(q2 - 2*qp4)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*m12*p3p4*p4P*qP)/(
- q2*q2*(q2 - 2*qp4)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*m12*m32*qP)/(
- q2*(q2 - 2*qp4)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*m32*p1p2*qP)/(
- q2*(q2 - 2*qp4)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*p1p4*p2p3*qP)/(
- q2*(q2 - 2*qp4)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*p1p3*p2p4*qP)/(
- q2*(q2 - 2*qp4)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*m12*p3p4*qP)/(
- q2*(q2 - 2*qp4)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*p2p3*p4P*p4P*qp1)/(
- q2*q2*(q2 - 2*qp4)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*p2p3*p4P*qp1)/(
- q2*(q2 - 2*qp4)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*p2p3*p4P*qP*qp1)/(
- q2*q2*(q2 - 2*qp4)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*p1p3*p4P*p4P*qp2)/(
- q2*q2*(q2 - 2*qp4)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*p1p3*p4P*qp2)/(
- q2*(q2 - 2*qp4)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*p1p3*p4P*qP*qp2)/(
- q2*q2*(q2 - 2*qp4)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*m12*p4P*p4P*qp3)/(
- q2*q2*(q2 - 2*qp4)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*m12*p4P*qp3)/(
- q2*(q2 - 2*qp4)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*m12*p4P*qP*qp3)/(
- q2*q2*(q2 - 2*qp4)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*m12*m32)/((q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 32*m32*p1p2)/((q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 32*p1p4*p2p3)/((q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 32*p1p3*p2p4)/((q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 32*m12*p3p4)/((q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (1024*m12*m32*p3P*p4P)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (512*m32*p1p2*p3P*p4P)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (512*p1p4*p2p3*p3P*p4P)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (512*p1p3*p2p4*p3P*p4P)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (512*m12*p3P*p3p4*p4P)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (128*M2*m32*p1p2)/(
- q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (256*m32*p1P*p2P)/(
- q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (128*M2*p1p4*p2p3)/(
- q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (128*M2*p1p3*p2p4)/(
- q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (256*m12*m32*p3P)/(
- q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (128*m32*p1p2*p3P)/(
- q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (128*p1p4*p2P*p3P)/(
- q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (128*p1p4*p2p3*p3P)/(
- q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (128*p1P*p2p4*p3P)/(
- q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (128*p1p3*p2p4*p3P)/(
- q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (128*M2*m12*p3p4)/(
- q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (256*M2*p1p2*p3p4)/(
- q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (256*p1P*p2P*p3p4)/(
- q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (128*m12*p3P*p3p4)/(
- q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (256*m12*m32*p4P)/(
- q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (128*m32*p1p2*p4P)/(
- q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (128*p1p3*p2P*p4P)/(
- q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (128*p1P*p2p3*p4P)/(
- q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (128*p1p4*p2p3*p4P)/(
- q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (128*p1p3*p2p4*p4P)/(
- q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (256*p1p2*p3P*p4P)/(
- q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (128*m12*p3p4*p4P)/(
- q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (512*m12*m32*p3P*qP)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (256*m32*p1p2*p3P*qP)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (256*p1p4*p2p3*p3P*qP)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (256*p1p3*p2p4*p3P*qP)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (256*m12*p3P*p3p4*qP)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (512*m12*m32*p4P*qP)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (256*m32*p1p2*p4P*qP)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (256*p1p4*p2p3*p4P*qP)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (256*p1p3*p2p4*p4P*qP)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (256*m12*p3p4*p4P*qP)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (256*m12*m32*qP)/(
- q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (128*m32*p1p2*qP)/(
- q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (128*p1p4*p2p3*qP)/(
- q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (128*p1p3*p2p4*qP)/(
- q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (128*m12*p3p4*qP)/(
- q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (256*m12*m32*qP*qP)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (256*p1p4*p2p3*qP*qP)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (256*p1p3*p2p4*qP*qP)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (256*p1p2*p3p4*qP*qP)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (256*p2p3*p3P*p4P*qp1)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (256*p2p4*p3P*p4P*qp1)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (64*p2p4*p3P*qp1)/(
- q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (64*p2p3*p4P*qp1)/(
- q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (256*m32*p2P*qP*qp1)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (256*p2P*p3p4*qP*qp1)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (256*p1p3*p3P*p4P*qp2)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (256*p1p4*p3P*p4P*qp2)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (64*p1p4*p3P*qp2)/(
- q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (64*p1p3*p4P*qp2)/(
- q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (256*m32*p1P*qP*qp2)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (256*p1P*p3p4*qP*qp2)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (256*M2*m32*qp1*qp2)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (256*M2*p3p4*qp1*qp2)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (512*p3P*p4P*qp1*qp2)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (512*m12*m32*p4P*qp3)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (256*m32*p1p2*p4P*qp3)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (256*p1p4*p2P*p4P*qp3)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (256*p1p4*p2p3*p4P*qp3)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (256*p1P*p2p4*p4P*qp3)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (256*p1p3*p2p4*p4P*qp3)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (256*m12*p3P*p4P*qp3)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (256*m12*p3p4*p4P*qp3)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (256*m12*p4P*p4P*qp3)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (128*m12*m32*qp3)/(
- q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (64*m32*p1p2*qp3)/(
- q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (64*p1p4*p2P*qp3)/(
- q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (64*p1p4*p2p3*qp3)/(
- q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (64*p1P*p2p4*qp3)/(
- q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (64*p1p3*p2p4*qp3)/(
- q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (64*m12*p3p4*qp3)/(
- q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (256*m12*m32*qP*qp3)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (128*m32*p1p2*qP*qp3)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (256*p1p4*p2P*qP*qp3)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (128*p1p4*p2p3*qP*qp3)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (256*p1P*p2p4*qP*qp3)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (128*p1p3*p2p4*qP*qp3)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (128*m12*p3p4*qP*qp3)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (256*p1p2*p4P*qP*qp3)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (128*M2*p2p4*qp1*qp3)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (256*p2P*p4P*qp1*qp3)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (128*p2p3*p4P*qp1*qp3)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (128*M2*p1p4*qp2*qp3)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (256*p1P*p4P*qp2*qp3)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (128*p1p3*p4P*qp2*qp3)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (128*m12*p4P*qp3*qp3)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*m12*m32*p1P*p3P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*m12*m32*p2P*p3P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*m32*p1p3*p2P*p3P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*m32*p1p4*p2P*p3P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 512*m32*p1P*p2p3*p3P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*p1p4*p2P*p2p3*p3P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 512*m32*p1P*p2p4*p3P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*p1p3*p2P*p2p4*p3P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 512*p1P*p2p3*p2p4*p3P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 512*m12*m32*p3P*p3P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*m32*p1p2*p3P*p3P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*p1p4*p2p3*p3P*p3P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*m12*p2p4*p3P*p3P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*p1p2*p2p4*p3P*p3P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*p1p4*p2p4*p3P*p3P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*m12*p1P*p3P*p3p4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*m12*p2P*p3P*p3p4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*p1P*p2p3*p3P*p3p4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*p1P*p2p4*p3P*p3p4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*m12*p3P*p3P*p3p4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 512*m12*m32*p3P*p4P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*m32*p1p2*p3P*p4P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*m12*p2p3*p3P*p4P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*p1p2*p2p3*p3P*p4P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*p1p3*p2p3*p3P*p4P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*p1p3*p2p4*p3P*p4P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*m12*p3P*p3p4*p4P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*m12*m32*p1P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*m12*m32*p2P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*m32*p1p2*p2P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*m32*p1p3*p2P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*m32*p1p4*p2P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*m32*p1P*p2p3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*p1p4*p2P*p2p3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*m32*p1P*p2p4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*p1p3*p2P*p2p4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p1P*p2p3*p2p4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 192*m12*m32*p3P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*m32*p1p2*p3P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*p1p4*p2p3*p3P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*m12*p2p4*p3P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p1p2*p2p4*p3P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*p1p3*p2p4*p3P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p1p4*p2p4*p3P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*m12*p1P*p3p4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*m12*p2P*p3p4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*p1p2*p2P*p3p4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*m12*p3P*p3p4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*p1p2*p3P*p3p4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*m12*m32*p4P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*m32*p1p2*p4P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*m12*p2p3*p4P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p1p2*p2p3*p4P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p1p3*p2p4*p4P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*m12*p3p4*p4P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*m12*m32*p1P*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*m12*m32*p2P*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*m32*p1p2*p2P*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*m32*p1p3*p2P*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*m32*p1p4*p2P*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*m32*p1P*p2p3*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p1p4*p2P*p2p3*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*m32*p1P*p2p4*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p1p3*p2P*p2p4*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*p1P*p2p3*p2p4*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 384*m12*m32*p3P*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*m32*p1p2*p3P*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p1p4*p2p3*p3P*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*m12*p2p4*p3P*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*p1p2*p2p4*p3P*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p1p3*p2p4*p3P*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*p1p4*p2p4*p3P*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*m12*p1P*p3p4*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*m12*p2P*p3p4*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p1p2*p2P*p3p4*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*m12*p3P*p3p4*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p1p2*p3P*p3p4*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*m12*m32*p4P*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*m32*p1p2*p4P*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*m12*p2p3*p4P*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*p1p2*p2p3*p4P*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*p1p3*p2p4*p4P*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*m12*p3p4*p4P*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*m32*p2P*p2P*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*M2*m32*p2p3*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*M2*m32*p2p4*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*m12*m32*p3P*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*m32*p2P*p3P*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*m32*p2p3*p3P*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*m32*p2p4*p3P*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p2P*p2p4*p3P*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*p2p3*p2p4*p3P*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p2p4*p3P*p3P*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p2P*p2P*p3p4*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*M2*p2p3*p3p4*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*M2*p2p4*p3p4*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*m12*p3P*p3p4*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p2P*p3P*p3p4*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p2p3*p3P*p3p4*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p2p4*p3P*p3p4*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p2P*p2p3*p4P*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p2p3*p3P*p4P*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 32*m12*m32*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*m32*p2p3*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*m32*p2p4*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*p2p3*p2p4*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 32*m12*p3p4*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 32*p2p3*p3p4*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 32*p2p4*p3p4*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*m12*m32*qP*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 192*m32*p2p3*qP*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 192*m32*p2p4*qP*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p2p3*p2p4*qP*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*m12*p3p4*qP*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p2p3*p3p4*qP*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p2p4*p3p4*qP*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*m12*m32)/((2*m32 + 2*p3p4)*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 32*m32*p1p2)/((2*m32 + 2*p3p4)*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 32*p1p4*p2p3)/((2*m32 + 2*p3p4)*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 32*p1p3*p2p4)/((2*m32 + 2*p3p4)*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 32*m12*p3p4)/((2*m32 + 2*p3p4)*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 1024*m12*m32*p2P*p3P)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 512*m32*p1p2*p2P*p3P)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 512*p1p4*p2P*p2p3*p3P)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 512*p1p3*p2P*p2p4*p3P)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 512*m12*p2P*p3P*p3p4)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*M2*m12*m32)/((2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*M2*m32*p1p2)/((2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*m12*m32*p2P)/((2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*m32*p1P*p2P)/((2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*m32*p1p2*p2P)/((2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p1p4*p2P*p2p3)/((2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p1p3*p2P*p2p4)/((2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*m12*m32*p3P)/((2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*m32*p1p2*p3P)/((2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p1p4*p2P*p3P)/((2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p1p4*p2p3*p3P)/((2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p1p3*p2p4*p3P)/((2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*M2*m12*p3p4)/((2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*M2*p1p2*p3p4)/((2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*m12*p2P*p3p4)/((2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p1P*p2P*p3p4)/((2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*m12*p3P*p3p4)/((2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p1P*p2p3*p4P)/((2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*m12*p3P*p4P)/((2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p1p2*p3P*p4P)/((2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 512*m12*m32*p2P*qP)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*m32*p1p2*p2P*qP)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*p1p4*p2P*p2p3*qP)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*p1p3*p2P*p2p4*qP)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 512*m12*m32*p3P*qP)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*m32*p1p2*p3P*qP)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*p1p4*p2p3*p3P*qP)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*p1p3*p2p4*p3P*qP)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*m12*p2P*p3p4*qP)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*m12*p3P*p3p4*qP)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*m12*m32*qP)/((2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*m32*p1p2*qP)/((2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p1p4*p2p3*qP)/((2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p1p3*p2p4*qP)/((2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*m12*p3p4*qP)/((2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 384*m12*m32*qP*qP)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*m32*p1p2*qP*qP)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p1p4*p2p3*qP*qP)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p1p3*p2p4*qP*qP)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*m12*p3p4*qP*qP)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p1p2*p3p4*qP*qP)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*m32*p2P*p3P*qp1)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*p2P*p2p4*p3P*qp1)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*m32*p2P*qp1)/((2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*p2p4*p3P*qp1)/((2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p2p4*p3P*qP*qp1)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p2P*p3p4*qP*qp1)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p2p3*p4P*qP*qp1)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*M2*m12*m32*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*M2*m32*p1p2*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*m32*p1P*p2P*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*m12*m32*p3P*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*m32*p1P*p3P*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*m32*p1p3*p3P*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*m32*p1p4*p3P*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p1p4*p2P*p3P*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p1p4*p2p3*p3P*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*p1P*p2p4*p3P*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p1p3*p2p4*p3P*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p1p4*p3P*p3P*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*M2*m12*p3p4*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*M2*p1p2*p3p4*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p1P*p2P*p3p4*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*m12*p3P*p3p4*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p1P*p3P*p3p4*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p1p3*p2P*p4P*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p1p3*p3P*p4P*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 32*m12*m32*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 32*m32*p1p3*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 32*m32*p1p4*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 32*p1p4*p2p3*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 32*p1p3*p2p4*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 32*m12*p3p4*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*m32*p1p2*qP*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*m32*p1p3*qP*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*m32*p1p4*qP*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*p1p4*p2p3*qP*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*p1p3*p2p4*qP*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*p1p2*p3p4*qP*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*m32*p2P*qp1*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 192*p2p4*p3P*qp1*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*p2P*p3p4*qp1*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*p2p3*p4P*qp1*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 512*m12*m32*p3P*qp2)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*m32*p1P*p3P*qp2)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*m32*p1p2*p3P*qp2)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*p1p4*p2P*p3P*qp2)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*p1p4*p2p3*p3P*qp2)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*p1p3*p2p4*p3P*qp2)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*p1p4*p3P*p3P*qp2)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*m12*p3P*p3p4*qp2)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*p1p3*p3P*p4P*qp2)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*m12*m32*qp2)/((2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*m32*p1P*qp2)/((2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*m32*p1p2*qp2)/((2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*p1p4*p2p3*qp2)/((2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*p1p3*p2p4*qp2)/((2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*m12*p3p4*qp2)/((2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*p1p3*p4P*qp2)/((2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*m12*m32*qP*qp2)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*m32*p1P*qP*qp2)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*m32*p1p2*qP*qp2)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p1p4*p2p3*qP*qp2)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p1p3*p2p4*qP*qp2)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p1p4*p3P*qP*qp2)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*m12*p3p4*qP*qp2)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p1P*p3p4*qP*qp2)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p1p3*p4P*qP*qp2)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*M2*m32*qp1*qp2)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p2p4*p3P*qp1*qp2)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*M2*p3p4*qp1*qp2)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*p3P*p4P*qp1*qp2)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*m32*p1P*qp2*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*p1p4*p3P*qp2*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*p1P*p3p4*qp2*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*p1p3*p4P*qp2*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p1p4*p3P*qp2*qp2)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*M2*m12*m32*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*m12*m32*p1P*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*M2*m32*p1p2*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*m12*m32*p2P*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*m32*p1p3*p2P*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*m32*p1p4*p2P*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p1p4*p2P*p2P*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*m32*p1P*p2p3*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p1p4*p2P*p2p3*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*M2*m12*p2p4*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*m32*p1P*p2p4*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*M2*p1p2*p2p4*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*M2*p1p3*p2p4*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*M2*p1p4*p2p4*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 384*p1P*p2P*p2p4*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p1p3*p2P*p2p4*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*p1P*p2p3*p2p4*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 512*m12*m32*p3P*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*m32*p1p2*p3P*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p1p4*p2P*p3P*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*p1p4*p2p3*p3P*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*m12*p2p4*p3P*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p1P*p2p4*p3P*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*p1p2*p2p4*p3P*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*p1p4*p2p4*p3P*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*M2*m12*p3p4*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*m12*p1P*p3p4*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*M2*p1p2*p3p4*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*m12*p2P*p3p4*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p1P*p2p3*p3p4*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p1P*p2p4*p3p4*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*m12*p3P*p3p4*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*m12*m32*p4P*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*m12*p1P*p4P*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*m32*p1p2*p4P*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p1p2*p2P*p4P*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*m12*p2p3*p4P*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p1p2*p2p3*p4P*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p1p3*p2p3*p4P*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*p1P*p2p4*p4P*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p1p3*p2p4*p4P*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p1p2*p3P*p4P*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*m12*p3p4*p4P*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*m12*p4P*p4P*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*m12*m32*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 32*m32*p1p2*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 32*p1p4*p2p3*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 32*m12*p2p4*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 32*p1p2*p2p4*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 32*p1p4*p2p4*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 32*m12*p3p4*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*m12*m32*qP*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*p1p4*p2p3*qP*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*p1p3*p2p4*qP*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*p1p2*p3p4*qP*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*m12*m32*qp1*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*m32*p2P*qp1*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*m32*p2p3*qp1*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*m32*p2p4*qp1*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p2P*p2p4*qp1*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p2p3*p2p4*qp1*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*p2p4*p3P*qp1*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*m12*p3p4*qp1*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*p2P*p3p4*qp1*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*p2p3*p3p4*qp1*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*p2p4*p3p4*qp1*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*m12*p4P*qp1*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*p2p3*p4P*qp1*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p2p4*p4P*qp1*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 512*m12*m32*p2P*qp3)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*m32*p1p2*p2P*qp3)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*p1p4*p2P*p2P*qp3)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*p1p4*p2P*p2p3*qp3)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*p1P*p2P*p2p4*qp3)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*p1p3*p2P*p2p4*qp3)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*p1p4*p2P*p3P*qp3)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*m12*p2P*p3p4*qp3)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*m12*p2P*p4P*qp3)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*m12*m32*qp3)/((2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*m32*p1p2*qp3)/((2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*p1p4*p2p3*qp3)/((2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*p1P*p2p4*qp3)/((2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*p1p3*p2p4*qp3)/((2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*m12*p3p4*qp3)/((2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*m12*p4P*qp3)/((2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*m12*m32*qP*qp3)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*m32*p1p2*qP*qp3)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p1p4*p2P*qP*qp3)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p1p4*p2p3*qP*qp3)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p1P*p2p4*qP*qp3)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p1p3*p2p4*qP*qp3)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*m12*p3p4*qP*qp3)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*m12*p4P*qP*qp3)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p1p2*p4P*qP*qp3)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*m32*p2P*qp1*qp3)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*m12*m32*qp2*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*m32*p1P*qp2*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*m32*p1p3*qp2*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*m32*p1p4*qp2*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*p1p4*p2P*qp2*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*p1p4*p2p3*qp2*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*p1P*p2p4*qp2*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*p1p3*p2p4*qp2*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*p1p4*p3P*qp2*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*m12*p3p4*qp2*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*p1P*p3p4*qp2*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*p1p2*p4P*qp2*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*p1p3*p4P*qp2*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*m12*m32*qp2*qp3)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*m32*p1P*qp2*qp3)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*m32*p1p2*qp2*qp3)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*M2*p1p4*qp2*qp3)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p1p4*p2P*qp2*qp3)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p1p4*p2p3*qp2*qp3)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p1P*p2p4*qp2*qp3)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p1p3*p2p4*qp2*qp3)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p1p4*p3P*qp2*qp3)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*m12*p3p4*qp2*qp3)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*m12*p4P*qp2*qp3)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*p1P*p4P*qp2*qp3)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p1p3*p4P*qp2*qp3)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*m12*m32*qp3*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*m32*p1p2*qp3*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*p1p4*p2P*qp3*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*p1p4*p2p3*qp3*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*m12*p2p4*qp3*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*p1P*p2p4*qp3*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*p1p2*p2p4*qp3*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*p1p4*p2p4*qp3*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*m12*p3p4*qp3*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*p1p2*p4P*qp3*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p1p4*p2P*qp3*qp3)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*m12*m32*p1P*p4P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*m12*m32*p2P*p4P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*m32*p1p3*p2P*p4P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*m32*p1p4*p2P*p4P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 512*m32*p1P*p2p3*p4P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*p1p4*p2P*p2p3*p4P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 512*m32*p1P*p2p4*p4P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*p1p3*p2P*p2p4*p4P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 512*p1P*p2p3*p2p4*p4P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 512*m12*m32*p3P*p4P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*m32*p1p2*p3P*p4P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*p1p4*p2p3*p3P*p4P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*m12*p2p4*p3P*p4P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*p1p2*p2p4*p3P*p4P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*p1p4*p2p4*p3P*p4P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*m12*p1P*p3p4*p4P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*m12*p2P*p3p4*p4P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*p1P*p2p3*p3p4*p4P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*p1P*p2p4*p3p4*p4P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*m12*p3P*p3p4*p4P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 512*m12*m32*p4P*p4P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*m32*p1p2*p4P*p4P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*m12*p2p3*p4P*p4P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*p1p2*p2p3*p4P*p4P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*p1p3*p2p3*p4P*p4P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*p1p3*p2p4*p4P*p4P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*m12*p3p4*p4P*p4P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*m12*m32*p1P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*m12*m32*p2P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*m32*p1p2*p2P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*m32*p1p3*p2P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*m32*p1p4*p2P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*m32*p1P*p2p3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*p1p4*p2P*p2p3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*m32*p1P*p2p4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*p1p3*p2P*p2p4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p1P*p2p3*p2p4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*m12*m32*p3P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*m32*p1p2*p3P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p1p4*p2p3*p3P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*m12*p2p4*p3P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p1p2*p2p4*p3P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*m12*p1P*p3p4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*m12*p2P*p3p4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*p1p2*p2P*p3p4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*m12*p3P*p3p4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 192*m12*m32*p4P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*m32*p1p2*p4P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*m12*p2p3*p4P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p1p2*p2p3*p4P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p1p3*p2p3*p4P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*p1p4*p2p3*p4P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*p1p3*p2p4*p4P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*m12*p3p4*p4P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*p1p2*p3p4*p4P)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*m12*m32*p1P*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*m12*m32*p2P*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*m32*p1p2*p2P*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*m32*p1p3*p2P*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*m32*p1p4*p2P*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*m32*p1P*p2p3*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p1p4*p2P*p2p3*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*m32*p1P*p2p4*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p1p3*p2P*p2p4*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*p1P*p2p3*p2p4*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*m12*m32*p3P*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*m32*p1p2*p3P*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*p1p4*p2p3*p3P*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*m12*p2p4*p3P*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*p1p2*p2p4*p3P*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*m12*p1P*p3p4*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*m12*p2P*p3p4*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p1p2*p2P*p3p4*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*m12*p3P*p3p4*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 384*m12*m32*p4P*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*m32*p1p2*p4P*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*m12*p2p3*p4P*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*p1p2*p2p3*p4P*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*p1p3*p2p3*p4P*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p1p4*p2p3*p4P*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p1p3*p2p4*p4P*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*m12*p3p4*p4P*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p1p2*p3p4*p4P*qP)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*m32*p2P*p2P*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*M2*m32*p2p3*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*M2*m32*p2p4*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p2P*p2p4*p3P*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p2P*p2P*p3p4*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*M2*p2p3*p3p4*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*M2*p2p4*p3p4*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*m12*m32*p4P*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*m32*p2P*p4P*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*m32*p2p3*p4P*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p2P*p2p3*p4P*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*m32*p2p4*p4P*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*p2p3*p2p4*p4P*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p2p4*p3P*p4P*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*m12*p3p4*p4P*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p2P*p3p4*p4P*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p2p3*p3p4*p4P*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p2p4*p3p4*p4P*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p2p3*p4P*p4P*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 32*m12*m32*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*m32*p2p3*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*m32*p2p4*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*p2p3*p2p4*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 32*m12*p3p4*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 32*p2p3*p3p4*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 32*p2p4*p3p4*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*m12*m32*qP*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 192*m32*p2p3*qP*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 192*m32*p2p4*qP*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p2p3*p2p4*qP*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*m12*p3p4*qP*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p2p3*p3p4*qP*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p2p4*p3p4*qP*qp1)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*m12*m32)/((2*m32 + 2*p3p4)*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 32*m32*p1p2)/((2*m32 + 2*p3p4)*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 32*p1p4*p2p3)/((2*m32 + 2*p3p4)*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 32*p1p3*p2p4)/((2*m32 + 2*p3p4)*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 32*m12*p3p4)/((2*m32 + 2*p3p4)*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 1024*m12*m32*p2P*p4P)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 512*m32*p1p2*p2P*p4P)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 512*p1p4*p2P*p2p3*p4P)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 512*p1p3*p2P*p2p4*p4P)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 512*m12*p2P*p3p4*p4P)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*M2*m12*m32)/((2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*M2*m32*p1p2)/((2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*m12*m32*p2P)/((2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*m32*p1P*p2P)/((2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*m32*p1p2*p2P)/((2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p1p4*p2P*p2p3)/((2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p1p3*p2P*p2p4)/((2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p1P*p2p4*p3P)/((2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*M2*m12*p3p4)/((2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*M2*p1p2*p3p4)/((2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*m12*p2P*p3p4)/((2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p1P*p2P*p3p4)/((2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*m12*m32*p4P)/((2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*m32*p1p2*p4P)/((2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p1p3*p2P*p4P)/((2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p1p4*p2p3*p4P)/((2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p1p3*p2p4*p4P)/((2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*m12*p3P*p4P)/((2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p1p2*p3P*p4P)/((2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*m12*p3p4*p4P)/((2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 512*m12*m32*p2P*qP)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*m32*p1p2*p2P*qP)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*p1p4*p2P*p2p3*qP)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*p1p3*p2P*p2p4*qP)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*m12*p2P*p3p4*qP)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 512*m12*m32*p4P*qP)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*m32*p1p2*p4P*qP)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*p1p4*p2p3*p4P*qP)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*p1p3*p2p4*p4P*qP)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*m12*p3p4*p4P*qP)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*m12*m32*qP)/((2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*m32*p1p2*qP)/((2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p1p4*p2p3*qP)/((2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p1p3*p2p4*qP)/((2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*m12*p3p4*qP)/((2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 384*m12*m32*qP*qP)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*m32*p1p2*qP*qP)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p1p4*p2p3*qP*qP)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p1p3*p2p4*qP*qP)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*m12*p3p4*qP*qP)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p1p2*p3p4*qP*qP)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*m32*p2P*p4P*qp1)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*p2P*p2p3*p4P*qp1)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*m32*p2P*qp1)/((2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*p2p3*p4P*qp1)/((2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p2p4*p3P*qP*qp1)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p2P*p3p4*qP*qp1)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p2p3*p4P*qP*qp1)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*M2*m12*m32*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*M2*m32*p1p2*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*m32*p1P*p2P*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p1p4*p2P*p3P*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*M2*m12*p3p4*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*M2*p1p2*p3p4*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p1P*p2P*p3p4*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*m12*m32*p4P*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*m32*p1P*p4P*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*m32*p1p3*p4P*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*m32*p1p4*p4P*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p1p3*p2P*p4P*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*p1P*p2p3*p4P*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p1p4*p2p3*p4P*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p1p3*p2p4*p4P*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p1p4*p3P*p4P*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*m12*p3p4*p4P*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p1P*p3p4*p4P*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p1p3*p4P*p4P*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 32*m12*m32*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 32*m32*p1p3*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 32*m32*p1p4*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 32*p1p4*p2p3*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 32*p1p3*p2p4*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 32*m12*p3p4*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*m32*p1p2*qP*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*m32*p1p3*qP*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*m32*p1p4*qP*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*p1p4*p2p3*qP*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*p1p3*p2p4*qP*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*p1p2*p3p4*qP*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*m32*p2P*qp1*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*p2p4*p3P*qp1*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*p2P*p3p4*qp1*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 192*p2p3*p4P*qp1*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 512*m12*m32*p4P*qp2)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*m32*p1P*p4P*qp2)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*m32*p1p2*p4P*qp2)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*p1p3*p2P*p4P*qp2)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*p1p4*p2p3*p4P*qp2)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*p1p3*p2p4*p4P*qp2)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*p1p4*p3P*p4P*qp2)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*m12*p3p4*p4P*qp2)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*p1p3*p4P*p4P*qp2)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*m12*m32*qp2)/((2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*m32*p1P*qp2)/((2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*m32*p1p2*qp2)/((2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*p1p4*p2p3*qp2)/((2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*p1p3*p2p4*qp2)/((2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*p1p4*p3P*qp2)/((2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*m12*p3p4*qp2)/((2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*m12*m32*qP*qp2)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*m32*p1P*qP*qp2)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*m32*p1p2*qP*qp2)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p1p4*p2p3*qP*qp2)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p1p3*p2p4*qP*qp2)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p1p4*p3P*qP*qp2)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*m12*p3p4*qP*qp2)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p1P*p3p4*qP*qp2)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p1p3*p4P*qP*qp2)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*M2*m32*qp1*qp2)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*M2*p3p4*qp1*qp2)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p2p3*p4P*qp1*qp2)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*p3P*p4P*qp1*qp2)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*m32*p1P*qp2*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*p1p4*p3P*qp2*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*p1P*p3p4*qp2*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*p1p3*p4P*qp2*qp2)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p1p3*p4P*qp2*qp2)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p1p4*p2P*p2P*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*M2*p1p4*p2p3*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*M2*m12*p2p4*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*M2*p1p2*p2p4*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*M2*p1p4*p2p4*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p1P*p2P*p2p4*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*m12*m32*p4P*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*m12*p1P*p4P*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*m32*p1p2*p4P*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p1p2*p2P*p4P*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p1p4*p2P*p4P*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*p1P*p2p3*p4P*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p1p4*p2p3*p4P*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*m12*p2p4*p4P*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p1P*p2p4*p4P*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p1p2*p2p4*p4P*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p1p4*p2p4*p4P*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*m12*p3P*p4P*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*m12*p3p4*p4P*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p1p2*p4P*p4P*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*m12*m32*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 32*m32*p1p2*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 32*p1p4*p2p3*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 32*m12*p2p4*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 32*p1p2*p2p4*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 32*p1p4*p2p4*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 32*m12*p3p4*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*m12*m32*qP*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*m32*p1p2*qP*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p1p4*p2p4*qP*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*m12*p3p4*qP*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*m12*p4P*qp1*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p2p3*p4P*qp1*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*m12*p2P*p4P*qp3)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*p1p4*p2P*p4P*qp3)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*p1p4*p2P*qp3)/((2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*m12*p4P*qp3)/((2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p1p4*p2P*qP*qp3)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p1P*p2p4*qP*qp3)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p1p2*p4P*qP*qp3)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*M2*p2p4*qp1*qp3)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*p2P*p4P*qp1*qp3)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*p1p4*p2P*qp2*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*p1P*p2p4*qp2*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*p1p2*p4P*qp2*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*m12*p4P*qp2*qp3)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*m12*p4P*qp3*qp3)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*m12*m32*p1P*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) - (
- 128*m32*p1P*p2p3*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) + (
- 128*p1P*p2p3*p2p3*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) - (
- 256*m32*p1P*p2p4*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) - (
- 128*p1P*p2p3*p2p4*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) + (
- 128*m12*p1P*p3p4*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) - (
- 128*p1P*p2p4*p3p4*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) - (
- 64*m12*m32*qp1*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) + (
- 64*m32*p2p3*qp1*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) - (
- 64*p2p3*p2p3*qp1*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) + (
- 128*m32*p2p4*qp1*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) + (
- 64*p2p3*p2p4*qp1*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) - (
- 64*m12*p3p4*qp1*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) + (
- 64*p2p4*p3p4*qp1*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2) - (
- 256*p1p3*p2P*p2P*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp2)) - (
- 64*p1p3*p2P*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp2)) + (
- 256*p1p3*p2P*qP*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp2)) - (
- 128*M2*m12*m32*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 256*m12*m32*p2P*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 256*m32*p1P*p2P*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 128*m32*p1p2*p2P*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 128*M2*m12*p2p3*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 128*M2*p1p2*p2p3*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 128*M2*p1p3*p2p3*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 128*M2*p1p4*p2p3*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 128*m12*p2P*p2p3*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 256*p1P*p2P*p2p3*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 128*p1p2*p2P*p2p3*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 128*p1p3*p2P*p2p3*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 128*p1p3*p2P*p2p4*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 128*p1p3*p2P*p3P*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 128*p1P*p2p3*p3P*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 128*m12*p3P*p3P*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 128*p1p2*p3P*p3P*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 128*M2*p1p2*p3p4*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 128*m12*p2P*p3p4*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 128*p1p3*p2P*p4P*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 128*p1P*p2p3*p4P*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 128*m12*p3P*p4P*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 128*p1p2*p3P*p4P*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 64*m12*m32*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp2)) - (
- 32*m32*p1p2*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp2)) - (
- 32*m12*p2p3*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp2)) + (
- 32*p1p2*p2p3*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp2)) + (
- 32*p1p3*p2p3*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp2)) - (
- 32*p1p3*p2p4*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp2)) + (
- 32*m12*p3p4*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp2)) - (
- 64*m12*m32*qP*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 64*m32*p1p2*qP*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 128*m12*p2p3*qP*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 128*p1p2*p2p3*qP*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 64*p1p4*p2p3*qP*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 64*p1p3*p2p4*qP*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 64*m12*p3p4*qP*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 64*p1p2*p3p4*qP*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 192*m32*p2P*qp1*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 64*p2p4*p3P*qp1*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 64*p2P*p3p4*qp1*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 64*p2p3*p4P*qp1*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 128*M2*p1p3*qp2*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp2)) + (
- 128*p1p3*p2P*qp2*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp2)) - (
- 128*m12*m32*qp2*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 64*m32*p1P*qp2*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 64*m32*p1p2*qp2*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 64*m12*p2p3*qp2*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 128*p1P*p2p3*qp2*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 64*p1p2*p2p3*qp2*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 64*p1p3*p2p3*qp2*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 64*p1p3*p2p4*qp2*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 64*p1p4*p3P*qp2*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 64*m12*p3p4*qp2*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 64*p1P*p3p4*qp2*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 64*p1p3*p4P*qp2*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 64*p1p3*p2P*qp3*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 64*p1p4*p2P*qp3*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 64*p1P*p2p3*qp3*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 64*p1P*p2p4*qp3*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 64*m12*p3P*qp3*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 64*p1p2*p3P*qp3*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 64*m12*p4P*qp3*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 64*p1p2*p4P*qp3*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (256*m12*p3P*p3P*qp4)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*m12*p3P*qp4)/(
- q2*(q2 - 2*qp3)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*m12*p3P*qP*qp4)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*M2*m12*qp3*qp4)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*m12*p3P*qp3*qp4)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 512*m12*m32*p4P*qp4)/(
- q2*q2*(q2 - 2*qp4)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*m32*p1p2*p4P*qp4)/(
- q2*q2*(q2 - 2*qp4)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*p1p3*p2P*p4P*qp4)/(
- q2*q2*(q2 - 2*qp4)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*p1P*p2p3*p4P*qp4)/(
- q2*q2*(q2 - 2*qp4)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*p1p4*p2p3*p4P*qp4)/(
- q2*q2*(q2 - 2*qp4)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*p1p3*p2p4*p4P*qp4)/(
- q2*q2*(q2 - 2*qp4)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*m12*p3P*p4P*qp4)/(
- q2*q2*(q2 - 2*qp4)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*m12*p3p4*p4P*qp4)/(
- q2*q2*(q2 - 2*qp4)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*m12*m32*qp4)/(
- q2*(q2 - 2*qp4)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*m32*p1p2*qp4)/(
- q2*(q2 - 2*qp4)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*p1p3*p2P*qp4)/(
- q2*(q2 - 2*qp4)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*p1P*p2p3*qp4)/(
- q2*(q2 - 2*qp4)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*p1p4*p2p3*qp4)/(
- q2*(q2 - 2*qp4)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*p1p3*p2p4*qp4)/(
- q2*(q2 - 2*qp4)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*m12*p3P*qp4)/(
- q2*(q2 - 2*qp4)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*m12*p3p4*qp4)/(
- q2*(q2 - 2*qp4)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*m12*m32*qP*qp4)/(
- q2*q2*(q2 - 2*qp4)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*m32*p1p2*qP*qp4)/(
- q2*q2*(q2 - 2*qp4)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p1p4*p2p3*qP*qp4)/(
- q2*q2*(q2 - 2*qp4)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p1p3*p2p4*qP*qp4)/(
- q2*q2*(q2 - 2*qp4)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*m12*p3p4*qP*qp4)/(
- q2*q2*(q2 - 2*qp4)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*M2*p2p3*qp1*qp4)/(
- q2*q2*(q2 - 2*qp4)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p2p3*p4P*qp1*qp4)/(
- q2*q2*(q2 - 2*qp4)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*M2*p1p3*qp2*qp4)/(
- q2*q2*(q2 - 2*qp4)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p1p3*p4P*qp2*qp4)/(
- q2*q2*(q2 - 2*qp4)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*M2*m12*qp3*qp4)/(
- q2*q2*(q2 - 2*qp4)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*m12*p4P*qp3*qp4)/(
- q2*q2*(q2 - 2*qp4)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 512*m12*m32*p3P*qp4)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (256*m32*p1p2*p3P*qp4)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (256*p1p3*p2P*p3P*qp4)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (256*p1P*p2p3*p3P*qp4)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (256*p1p4*p2p3*p3P*qp4)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (256*p1p3*p2p4*p3P*qp4)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (256*m12*p3P*p3P*qp4)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (256*m12*p3P*p3p4*qp4)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (256*m12*p3P*p4P*qp4)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (128*m12*m32*qp4)/(
- q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (64*m32*p1p2*qp4)/(
- q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (64*p1p3*p2P*qp4)/(
- q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (64*p1P*p2p3*qp4)/(
- q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (64*p1p4*p2p3*qp4)/(
- q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (64*p1p3*p2p4*qp4)/(
- q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (64*m12*p3p4*qp4)/(
- q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (256*m12*m32*qP*qp4)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (128*m32*p1p2*qP*qp4)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (256*p1p3*p2P*qP*qp4)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (256*p1P*p2p3*qP*qp4)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (128*p1p4*p2p3*qP*qp4)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (128*p1p3*p2p4*qP*qp4)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (256*p1p2*p3P*qP*qp4)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (128*m12*p3p4*qP*qp4)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (128*M2*p2p3*qp1*qp4)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (256*p2P*p3P*qp1*qp4)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (128*p2p4*p3P*qp1*qp4)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (128*M2*p1p3*qp2*qp4)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (256*p1P*p3P*qp2*qp4)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (128*p1p4*p3P*qp2*qp4)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (256*m12*m32*qp3*qp4)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (256*M2*p1p2*qp3*qp4)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (128*m32*p1p2*qp3*qp4)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (512*p1P*p2P*qp3*qp4)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (128*p1p3*p2P*qp3*qp4)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (128*p1p4*p2P*qp3*qp4)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (128*p1P*p2p3*qp3*qp4)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (128*p1p4*p2p3*qp3*qp4)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (128*p1P*p2p4*qp3*qp4)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (128*p1p3*p2p4*qp3*qp4)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (128*m12*p3P*qp3*qp4)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (128*m12*p3p4*qp3*qp4)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (128*m12*p4P*qp3*qp4)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p1p3*p2P*p2P*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*M2*m12*p2p3*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*M2*p1p2*p2p3*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*M2*p1p3*p2p3*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p1P*p2P*p2p3*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*M2*p1p3*p2p4*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*m12*m32*p3P*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*m12*p1P*p3P*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*m32*p1p2*p3P*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p1p2*p2P*p3P*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p1p3*p2P*p3P*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*m12*p2p3*p3P*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p1P*p2p3*p3P*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p1p2*p2p3*p3P*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p1p3*p2p3*p3P*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*p1P*p2p4*p3P*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p1p3*p2p4*p3P*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p1p2*p3P*p3P*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*m12*p3P*p3p4*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*m12*p3P*p4P*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*m12*m32*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 32*m32*p1p2*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 32*m12*p2p3*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 32*p1p2*p2p3*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 32*p1p3*p2p3*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 32*p1p3*p2p4*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 32*m12*p3p4*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*m12*m32*qP*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*m32*p1p2*qP*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p1p3*p2p3*qP*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*m12*p3p4*qP*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*m12*p3P*qp1*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p2p4*p3P*qp1*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*m12*p2P*p3P*qp4)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*p1p3*p2P*p3P*qp4)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*p1p3*p2P*qp4)/((2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*m12*p3P*qp4)/((2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p1p3*p2P*qP*qp4)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p1P*p2p3*qP*qp4)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p1p2*p3P*qP*qp4)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*M2*p2p3*qp1*qp4)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*p2P*p3P*qp1*qp4)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*p1p3*p2P*qp2*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*p1P*p2p3*qp2*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*p1p2*p3P*qp2*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*m12*p3P*qp2*qp4)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*m12*m32*qp3*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*m32*p1p2*qp3*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*p1p3*p2P*qp3*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*m12*p2p3*qp3*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*p1P*p2p3*qp3*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*p1p2*p2p3*qp3*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*p1p3*p2p3*qp3*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*p1p3*p2p4*qp3*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*p1p2*p3P*qp3*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*m12*p3p4*qp3*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*m12*p4P*qp3*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*M2*m12*qp3*qp4)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*M2*p1p2*qp3*qp4)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*p1P*p2P*qp3*qp4)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p1p3*p2P*qp3*qp4)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*M2*m12*m32*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*m12*m32*p1P*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*M2*m32*p1p2*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*m12*m32*p2P*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*m32*p1p3*p2P*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*m32*p1p4*p2P*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p1p3*p2P*p2P*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*M2*m12*p2p3*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*m32*p1P*p2p3*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*M2*p1p2*p2p3*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*M2*p1p3*p2p3*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*M2*p1p4*p2p3*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 384*p1P*p2P*p2p3*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p1p4*p2P*p2p3*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*m32*p1P*p2p4*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p1p3*p2P*p2p4*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*p1P*p2p3*p2p4*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*m12*m32*p3P*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*m12*p1P*p3P*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*m32*p1p2*p3P*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p1p2*p2P*p3P*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*p1P*p2p3*p3P*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p1p4*p2p3*p3P*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*m12*p2p4*p3P*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p1p2*p2p4*p3P*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p1p4*p2p4*p3P*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*m12*p3P*p3P*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*M2*m12*p3p4*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*m12*p1P*p3p4*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*M2*p1p2*p3p4*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*m12*p2P*p3p4*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p1P*p2p3*p3p4*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p1P*p2p4*p3p4*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*m12*p3P*p3p4*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 512*m12*m32*p4P*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*m32*p1p2*p4P*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p1p3*p2P*p4P*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*m12*p2p3*p4P*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p1P*p2p3*p4P*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*p1p2*p2p3*p4P*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*p1p3*p2p3*p4P*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*p1p3*p2p4*p4P*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p1p2*p3P*p4P*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*m12*p3p4*p4P*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*m12*m32*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 32*m32*p1p2*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 32*m12*p2p3*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 32*p1p2*p2p3*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 32*p1p3*p2p3*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 32*p1p3*p2p4*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 32*m12*p3p4*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*m12*m32*qP*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*p1p4*p2p3*qP*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*p1p3*p2p4*qP*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*p1p2*p3p4*qP*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*m12*m32*qp1*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*m32*p2P*qp1*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*m32*p2p3*qp1*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p2P*p2p3*qp1*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*m32*p2p4*qp1*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p2p3*p2p4*qp1*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*m12*p3P*qp1*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p2p3*p3P*qp1*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*p2p4*p3P*qp1*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*m12*p3p4*qp1*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*p2P*p3p4*qp1*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*p2p3*p3p4*qp1*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*p2p4*p3p4*qp1*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*p2p3*p4P*qp1*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 512*m12*m32*p2P*qp4)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*m32*p1p2*p2P*qp4)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*p1p3*p2P*p2P*qp4)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*p1P*p2P*p2p3*qp4)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*p1p4*p2P*p2p3*qp4)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*p1p3*p2P*p2p4*qp4)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*m12*p2P*p3P*qp4)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*m12*p2P*p3p4*qp4)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*p1p3*p2P*p4P*qp4)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*m12*m32*qp4)/((2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*m32*p1p2*qp4)/((2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*p1P*p2p3*qp4)/((2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*p1p4*p2p3*qp4)/((2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*p1p3*p2p4*qp4)/((2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*m12*p3P*qp4)/((2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*m12*p3p4*qp4)/((2*m32 + 2*p3p4)*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*m12*m32*qP*qp4)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*m32*p1p2*qP*qp4)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p1p3*p2P*qP*qp4)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p1P*p2p3*qP*qp4)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p1p4*p2p3*qP*qp4)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p1p3*p2p4*qP*qp4)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*m12*p3P*qP*qp4)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p1p2*p3P*qP*qp4)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*m12*p3p4*qP*qp4)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*m32*p2P*qp1*qp4)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*m12*m32*qp2*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*m32*p1P*qp2*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*m32*p1p3*qp2*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*m32*p1p4*qp2*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*p1p3*p2P*qp2*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*p1P*p2p3*qp2*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*p1p4*p2p3*qp2*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*p1p3*p2p4*qp2*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*p1p2*p3P*qp2*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*p1p4*p3P*qp2*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*m12*p3p4*qp2*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*p1P*p3p4*qp2*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*p1p3*p4P*qp2*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*m12*m32*qp2*qp4)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*m32*p1P*qp2*qp4)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*m32*p1p2*qp2*qp4)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*M2*p1p3*qp2*qp4)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p1p3*p2P*qp2*qp4)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p1P*p2p3*qp2*qp4)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p1p4*p2p3*qp2*qp4)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p1p3*p2p4*qp2*qp4)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*m12*p3P*qp2*qp4)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 256*p1P*p3P*qp2*qp4)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p1p4*p3P*qp2*qp4)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*m12*p3p4*qp2*qp4)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p1p3*p4P*qp2*qp4)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*m12*m32*qp3*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*m32*p1p2*qp3*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*p1p4*p2P*qp3*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*p1p4*p2p3*qp3*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*m12*p2p4*qp3*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*p1P*p2p4*qp3*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*p1p2*p2p4*qp3*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*p1p4*p2p4*qp3*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*m12*p3P*qp3*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*m12*p3p4*qp3*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*p1p2*p4P*qp3*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*M2*m12*qp3*qp4)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*M2*p1p2*qp3*qp4)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 256*p1P*p2P*qp3*qp4)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p1p4*p2P*qp3*qp4)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*p1p3*p2P*qp4*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 64*p1P*p2p3*qp4*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) + (
- 64*m12*p3P*qp4*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (
- 64*p1p2*p3P*qp4*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp2)) - (128*m12*m32*qp4*qp4)/(
- q2*q2*(q2 - 2*qp4)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*m32*p1p2*qp4*qp4)/(
- q2*q2*(q2 - 2*qp4)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p1p3*p2P*qp4*qp4)/(
- q2*q2*(q2 - 2*qp4)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*p1P*p2p3*qp4*qp4)/(
- q2*q2*(q2 - 2*qp4)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*p1p4*p2p3*qp4*qp4)/(
- q2*q2*(q2 - 2*qp4)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*p1p3*p2p4*qp4*qp4)/(
- q2*q2*(q2 - 2*qp4)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*m12*p3P*qp4*qp4)/(
- q2*q2*(q2 - 2*qp4)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*m12*p3p4*qp4*qp4)/(
- q2*q2*(q2 - 2*qp4)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*m12*p3P*qp4*qp4)/(
- q2*q2*(q2 - 2*qp3)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*m12*p3P*qp4*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp3)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 128*m12*m32*qp4*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*m32*p1p2*qp4*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*p1p3*p2P*qp4*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*m12*p2p3*qp4*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*p1P*p2p3*qp4*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*p1p2*p2p3*qp4*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*p1p3*p2p3*qp4*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*p1p3*p2p4*qp4*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 64*p1p2*p3P*qp4*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) - (
- 64*m12*p3p4*qp4*qp4)/((2*m32 + 2*p3p4)*(2*m32 + 2*p2p3 + 2*p2p4 + 2*p3p4)*q2*q2*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4)) + (
- 128*p1p3*p2P*qp4*qp4)/((2*m32 + 2*p3p4)*q2*q2*(q2 - 2*qp2)*(q2 - 2*qp4)*(2*m32 + 2*p3p4 + q2 - 2*qp3 - 2*qp4));
-      
-         
-      if(result < 0.0){result = 0.0;}       
-
-    return result;
-}
-
+   
     
 //*************************************************
 // Compute cross section for fixed neutrino energy
@@ -5140,29 +3246,17 @@ void DetermineWeight(){
     GV = 0.0;
     GA = 0.0;
     
-    double facT;
-    double W23;
-    if (process == 51){
-       W23 = sqrt(2.0*0.1057*0.1057+2.0*p2p3);
-       if (W23 < 0.25){facT = 3.2/5.9;}
-       if (W23 >= 0.25 && W23 < 0.3){facT = 4.6/6.5;}
-       if (W23 >= 0.3 && W23 < 0.35){facT = 3.5/4.7;}
-       if (W23 >= 0.35 && W23 < 0.4){facT = 2.1/2.4;}
-       if (W23 >= 0.4 && W23 < 0.45){facT = 1.3/1.5;}
-       if (W23 >= 0.45 && W23 < 0.5){facT = 0.8/0.9;}
-       if (W23 >= 0.5){facT = 1.0;}
-    }
-    else {facT = 1.0;}
-    
     // Jacobian factor (27) of Lovseth, Radomski, without the form factor 
     // (form factor is cancelled by the corresponding term in PLP)
-    J = Twopi/8/eps1/M*D3/16/(qp1)/sqrt(u4)*D4/8/qc/WC*facT;
+    J = Twopi/8/sqrt(eps1*eps1-m1*m1)/M*D3/16/sqrt(qp1*qp1-m1*m1*x1)/sqrt(u4+4*m1*m1*m4*m4)*D4/8/qc/WC;
     
     // Define the squared matrix element
-    if (model.compare("SMmuon") == 0){
+    if (model.compare("SM") == 0){
        // Define the squared matrix element for muon trident
-       if (anti == 0){PLP = SquaredMatrixElementPLPmuon(GV, GA);}
-       else {PLP = SquaredMatrixElementPLPmuon(GV, GA);}
+       if (amplitude.compare("BH") == 0){PLP = SquaredMatrixElementPLP_BH(GV, GA);}
+       else if (amplitude.compare("BH+bremss") == 0){PLP = SquaredMatrixElementPLP_BHbremss(GV, GA);}
+       else if (amplitude.compare("BH_interf") == 0){PLP = SquaredMatrixElementPLP_BH_interf(GV, GA);}
+       else if (amplitude.compare("BH+bremss_interf") == 0){PLP = SquaredMatrixElementPLP_BHbremss_interf(GV, GA);}
               
        Laa = 0.0;
        if (material.compare("proton") == 0 || material.compare("neutron") == 0){
@@ -5173,13 +3267,13 @@ void DetermineWeight(){
        
        // Cross section (26) of Lovseth, Radomski
        if (material.compare("proton") == 0){
-         deltaSigma=aem*aem*aem*aem*(Z*Z)*4.0/(2*pi*2*pi*2*pi*2*pi)/M/eps1*PLP*J*(0.389379e12)*Pauli(sqrt(-q2*(1-q2/4/M2)));
+         deltaSigma=aem*aem*aem*aem*(Z*Z)*4.0/(2*pi*2*pi*2*pi*2*pi)/M/sqrt(eps1*eps1-m1*m1)*PLP*J*(0.389379e12)*Pauli(sqrt(-q2*(1-q2/4/M2)));
        }
        else if (material.compare("neutron") == 0){
-         deltaSigma=aem*aem*aem*aem*(Z*Z)*4.0/(2*pi*2*pi*2*pi*2*pi)/M/eps1*PLP*J*(0.389379e12)*Pauli(sqrt(-q2*(1-q2/4/M2)));
+         deltaSigma=aem*aem*aem*aem*(Z*Z)*4.0/(2*pi*2*pi*2*pi*2*pi)/M/sqrt(eps1*eps1-m1*m1)*PLP*J*(0.389379e12)*Pauli(sqrt(-q2*(1-q2/4/M2)));
        }
        else {
-         deltaSigma=aem*aem*aem*aem*(Z*Z)*4.0/(2*pi*2*pi*2*pi*2*pi)/M/eps1*PLP*J*(0.389379e12);
+         deltaSigma=aem*aem*aem*aem*(Z*Z)*4.0/(2*pi*2*pi*2*pi*2*pi)/M/sqrt(eps1*eps1-m1*m1)*PLP*J*(0.389379e12);
          //cout << J << " " << PLP << endl;
          //exit(0);
        }    
@@ -5187,7 +3281,6 @@ void DetermineWeight(){
        
     // Define the weight of the event
     weight = deltaSigma*((u1max-u1min)*(u2max-u2min)*(u3max-u3min)*(u4max-u4min)*(u5max-u5min)*(u6max-u6min)*(u7max-u7min));}
-    
     if (energy_type.compare("1") != 0){
       weight=weight*probability_list[bin]*length_probability_list;
       }
@@ -5326,7 +3419,7 @@ void WriteEventFile(string filename){
                 outfile << std::fixed << std::setprecision(8) << data1[n+d] << " ";
             }
             outfile << std::fixed << std::setprecision(8) << data1[n] << " ";
-            outfile << std::fixed << std::setprecision(8) << "0.0\n";
+            outfile << std::fixed << std::setprecision(8) << m1 << "\n";
             n += 4;
             
             outfile << PDG2 << "  1 ";
@@ -5334,7 +3427,7 @@ void WriteEventFile(string filename){
                 outfile << std::fixed << std::setprecision(8) << data1[n+d] << " ";
             }
             outfile << std::fixed << std::setprecision(8) << data1[n] << " ";
-            outfile << std::fixed << std::setprecision(8) << "0.0\n";
+            outfile << std::fixed << std::setprecision(8) <<  m2 << "\n";
             n += 4;
             
             outfile << PDG4 << "  1 ";
